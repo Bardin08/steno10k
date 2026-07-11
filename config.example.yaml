@@ -1,0 +1,52 @@
+# steno10k configuration. Copy to config.yaml and edit.
+# Secrets are read from environment variables — NEVER put real keys here.
+
+audio:
+  chunk_seconds: 600
+  overlap_seconds: 15
+  min_chunk_seconds: 20
+  output_format: m4a
+
+transcription:
+  model: small # tiny | base | small | medium | large-v3
+  device: cpu
+  compute_type: int8
+  language: en
+  max_workers: 4
+  cpu_threads_per_worker: 3
+
+llm:
+  enabled: true
+  api_key_env: OPENAI_API_KEY # env var holding the key; never hardcode it
+  base_url: "" # any OpenAI-compatible endpoint
+  model: ""
+  temperature: 0.2
+  max_tokens: 4000
+  concurrency: 2
+
+output:
+  summary_filename: summary.md
+  save_merged_raw_transcript: true
+  save_merged_clean_transcript: true
+  save_bundle_docx: true
+
+stages:
+  enabled:
+    normalize: true
+    chunk: true
+    transcribe: true
+    clean: true
+    merge: true
+    summarize: true
+    bundle: true
+    notify: true # needs telegram.enabled (or a UI subscriber) to do anything
+
+prompts:
+  language: en
+  target_output_language: en
+  override_dir: null
+
+telegram:
+  enabled: false
+  bot_token_env: TELEGRAM_BOT_TOKEN
+  chat_id: null
