@@ -18,7 +18,8 @@ covers the loop; every screen composes F3 primitives and obeys the design law
 (`docs/standards/ui-design-system.md`).
 
 Non-goals: prompt editing, Telegram config, run-option passthrough
-(`from_stage`/`only`), auth, multi-user. See §11 and ADR-0001.
+(`from_stage`/`only`), auth, multi-user. See §11 and the M1·U deferrals ADR
+(`docs/adr/*-m1-u-web-ui-deferrals.md`).
 
 ## 2. Information architecture (shell)
 
@@ -236,7 +237,7 @@ Vertical, each independently reviewable:
 
 ## 11. Out of scope / soft dependencies
 
-- **Deferred (ADR-0001):** prompts editor, Telegram config, run-option
+- **Deferred (see the M1·U deferrals ADR):** prompts editor, Telegram config, run-option
   passthrough (`from_stage`/`only`), auth/multi-user.
 - **Per-run stage/force selection is not surfaced.** Which stages run is chosen
   globally on the Config screen (`StagesConfig`). The API's `stage_overrides`/

@@ -1,5 +1,9 @@
-# ADR-0001 — M1·U Web UI deferrals and forward-compatible controls
+# ADR — M1·U Web UI deferrals
 
+- **Number:** provisional `0001` — reserved via
+  `~/.claude/locks/steno10k/adr-numbering.lock.md`; the ADR sequence is a shared
+  resource, so the final number (and filename) is confirmed at merge to avoid a
+  concurrency collision. Do not hard-code this number in other documents.
 - **Status:** Accepted
 - **Date:** 2026-07-11
 - **Context milestone:** M1·U (Minimal Web UI)
