@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { expect, test } from "vitest";
 import App from "./App";
 
-test("renders the steno10k wordmark", () => {
+test("renders the queue monitor with a live item", () => {
   render(<App />);
-  expect(screen.getByText(/steno/i)).toBeDefined();
+  expect(screen.getByText(/Judicial Review/)).toBeInTheDocument();
 });
