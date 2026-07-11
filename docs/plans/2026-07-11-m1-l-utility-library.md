@@ -32,24 +32,61 @@ Created under `backend/`:
 
 ---
 
-## Task 0: Branch, dependencies, package skeleton
+## Task 0: Ticket, branch, dependencies, package skeleton
+
+Per the F0 operating model (`docs/specs/…-f0-…`, AGENTS.md): **one issue → one branch → one PR**, branch named `<type>/<issue>-<slug>`.
 
 **Files:**
 - Modify: `backend/pyproject.toml`
 - Create: `backend/src/steno10k/lib/__init__.py`
 - Create: `backend/tests/lib/__init__.py`
 
-- [ ] **Step 1: Create the feature branch**
+- [ ] **Step 1: Create the GitHub issue (ticket) for this unit**
 
-This plan runs in the isolated worktree already on `docs/m1-pipeline-spec`. Start the implementation branch from the current `origin/main`:
+Create the M1·L sub-issue with the F0 labels (`area:backend`, `type:feat`), acceptance criteria from the spec, and a link back to it. Capture the number into `$ISSUE` for the branch name:
 
 ```bash
 cd /Users/vladyslavbardin/Docs/Personal/steno10k-m1
-git fetch origin --quiet
-git checkout -b feat/l-utility-library origin/main
+gh label create area:backend --color 0e8a16 2>/dev/null; gh label create type:feat --color 1d76db 2>/dev/null; true
+ISSUE_URL=$(gh issue create \
+  --title "M1·L: ported utility library (steno10k/lib)" \
+  --label "area:backend,type:feat" \
+  --body "$(cat <<'EOF'
+Implements the M1·L fan-out unit — the ported capability library `steno10k/lib/`.
+
+Spec: docs/specs/2026-07-11-steno10k-m1-l-utility-library-design.md
+Plan: docs/plans/2026-07-11-m1-l-utility-library.md
+Umbrella: docs/specs/2026-07-11-steno10k-m1-decomposition-design.md
+
+Acceptance (from the spec §7):
+- [ ] `steno10k/lib/` exists; `lib` imports only from `contracts`/stdlib/third-party (import guard).
+- [ ] `lib/llm` satisfies `contracts.llm.LLMClient`; no domain methods; no fields added to F1 config.
+- [ ] No provider-specific code/config/dep anywhere in `lib` (empty vendor-name grep).
+- [ ] `lib/prompts` ships English, domain-neutral `clean`/`summarize` defaults + override loader + rollback.
+- [ ] `normalize_recording_name` reuses `contracts.slug`; `filenames.py` not ported.
+- [ ] `build_bundle` decoupled from lecture paths/naming; uses `contracts.errors.ErrorLog`.
+- [ ] Ported + new tests pass in CI with no ffmpeg/whisper binaries; binary tests skip cleanly.
+- [ ] New runtime deps declared; `ffmpeg` documented + guarded by `ensure_ffmpeg_available`.
+- [ ] Deferred-config ADR (docs/adr/0001-…) added.
+EOF
+)")
+echo "Created: $ISSUE_URL"
+ISSUE=$(basename "$ISSUE_URL")
+echo "Issue number: $ISSUE"
 ```
 
-- [ ] **Step 2: Add runtime dependencies + mypy overrides**
+If an M1 epic issue exists, link this as a sub-issue of it (or note it in the epic). Keep `$ISSUE` for the next step.
+
+- [ ] **Step 2: Create the feature branch (named for the issue)**
+
+This plan runs in the isolated worktree already on `docs/m1-pipeline-spec`. Start the implementation branch from the current `origin/main`, referencing the issue number (no `#` in branch names):
+
+```bash
+git fetch origin --quiet
+git checkout -b "feat/${ISSUE}-l-utility-library" origin/main
+```
+
+- [ ] **Step 3: Add runtime dependencies + mypy overrides**
 
 Edit `backend/pyproject.toml`. Replace the `dependencies` list and add mypy overrides. New `dependencies`:
 
@@ -81,7 +118,7 @@ module = ["faster_whisper.*", "docx.*"]
 ignore_missing_imports = true
 ```
 
-- [ ] **Step 3: Create the package markers**
+- [ ] **Step 4: Create the package markers**
 
 ```bash
 mkdir -p backend/src/steno10k/lib backend/tests/lib
@@ -89,16 +126,16 @@ printf '' > backend/src/steno10k/lib/__init__.py
 printf '' > backend/tests/lib/__init__.py
 ```
 
-- [ ] **Step 4: Sync the environment**
+- [ ] **Step 5: Sync the environment**
 
 Run: `cd backend && uv sync`
 Expected: resolves and installs `faster-whisper`, `openai`, `python-docx` (may take a minute — pulls `ctranslate2`).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add backend/pyproject.toml backend/uv.lock backend/src/steno10k/lib/__init__.py backend/tests/lib/__init__.py
-git commit -m "chore(lib): add media/LLM/docx runtime deps and lib package skeleton"
+git commit -m "chore(lib): add media/LLM/docx runtime deps and lib package skeleton (#${ISSUE})"
 ```
 
 ---
@@ -1580,6 +1617,49 @@ Expected: all hooks pass.
 git add -A
 git commit -m "chore(lib): lint/format fixups"
 ```
+
+---
+
+## Task 12: Push and open the PR (closes the ticket)
+
+Completes the one issue → one branch → one PR loop.
+
+- [ ] **Step 1: Push the branch**
+
+```bash
+git push -u origin "feat/${ISSUE}-l-utility-library"
+```
+
+- [ ] **Step 2: Open the PR linking the issue**
+
+Fill the repo PR template; `Closes #N` auto-closes the ticket on squash-merge:
+
+```bash
+gh pr create \
+  --base main \
+  --title "M1·L: ported utility library (steno10k/lib)" \
+  --body "$(cat <<EOF
+Closes #${ISSUE}
+
+Implements M1·L — the ported capability library \`steno10k/lib/\` (ffmpeg, retry,
+names, docx render + bundle, prompts, OpenAI-compatible LLM client, transcriber),
+per docs/specs/2026-07-11-steno10k-m1-l-utility-library-design.md.
+
+- Provider-neutral LLM layer (implements \`contracts.llm.LLMClient\`); retry/timeout
+  and Whisper decode knobs deferred to M2 (docs/adr/0001-…).
+- Reuses \`contracts.slug\` (no \`filenames.py\` port); import-boundary guarded.
+- Tests: ported (\`plan_chunks\`/\`retry\`/\`markdown_docx\`) + new; ffmpeg/whisper
+  paths skip-gated so CI needs no binaries.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)"
+```
+
+- [ ] **Step 3: Confirm CI is green**
+
+Run: `gh pr checks --watch`
+Expected: all required checks (ruff, mypy, pytest, frontend, container build) pass. Address failures before requesting merge.
 
 ---
 
