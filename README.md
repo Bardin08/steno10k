@@ -39,7 +39,7 @@ enabled/disabled from config or the UI (dependencies cascade).
 ## Quickstart
 
 ```bash
-cp config.example.yaml config.yaml   # (added in a later milestone)
+cp config.example.yaml config.yaml
 docker compose up
 ```
 
