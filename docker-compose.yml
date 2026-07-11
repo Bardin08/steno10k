@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    image: steno10k:dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - steno10k-data:/data
+    environment:
+      STENO10K_DATA_ROOT: /data
+    env_file:
+      - path: .env
+        required: false
+
+volumes:
+  steno10k-data:
