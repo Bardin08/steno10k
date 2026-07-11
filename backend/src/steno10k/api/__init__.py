@@ -8,12 +8,13 @@ from fastapi.staticfiles import StaticFiles
 
 from steno10k.api.configsvc import ConfigService
 from steno10k.api.envelope import install_error_handlers, ok
-from steno10k.api.routers import artifacts, projects, recordings, sets
+from steno10k.api.routers import artifacts, config, projects, prompts, recordings, sets
 from steno10k.api.storage import Storage
 
 
 def create_app(data_root: Path) -> FastAPI:
     app = FastAPI(title="steno10k")
+    app.state.data_root = data_root
     app.state.storage = Storage(data_root)
     app.state.config_service = ConfigService(data_root / "config.yaml")
     install_error_handlers(app)
@@ -26,6 +27,8 @@ def create_app(data_root: Path) -> FastAPI:
     app.include_router(sets.router)
     app.include_router(recordings.router)
     app.include_router(artifacts.router)
+    app.include_router(config.router)
+    app.include_router(prompts.router)
 
     # Built SPA served at "/" in the container; absent during local tests.
     _static = Path(__file__).parent.parent / "static"
