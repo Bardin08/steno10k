@@ -12,3 +12,4 @@ export { Table, THead, TBody, TR, TH, TD } from "./Table";
 export { StatusPill, type Status } from "./StatusPill";
 export { ProgressBar } from "./ProgressBar";
 export { QueueRow, type QueueRowProps } from "./QueueRow";
+export { Tabs, TabsList, TabsTrigger, TabsContent } from "./Tabs";
