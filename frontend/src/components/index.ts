@@ -14,3 +14,5 @@ export { ProgressBar } from "./ProgressBar";
 export { QueueRow, type QueueRowProps } from "./QueueRow";
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./Tabs";
 export { Tooltip } from "./Tooltip";
+export { Modal, type ModalProps } from "./Modal";
+export { Drawer, type DrawerProps } from "./Drawer";
