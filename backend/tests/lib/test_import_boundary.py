@@ -18,7 +18,7 @@ def _imports(path: Path) -> list[str]:
     return names
 
 
-def test_lib_never_imports_api_or_stages():
+def test_lib_never_imports_api_or_stages() -> None:
     offenders: list[str] = []
     for py in _LIB_DIR.glob("*.py"):
         for mod in _imports(py):
