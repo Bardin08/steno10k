@@ -79,3 +79,10 @@ class RunDTO(BaseModel):
             position=r.position,
             stats=dict(r.stats),
         )
+
+
+class SystemInfoDTO(BaseModel):
+    whisper_models: list[str]
+    current_model: str
+    max_workers: int
+    data_root: str
