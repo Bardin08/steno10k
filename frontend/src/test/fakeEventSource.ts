@@ -34,6 +34,7 @@ export class FakeEventSource {
 
 export function installFakeEventSource() {
   FakeEventSource.reset();
-  (globalThis as unknown as { EventSource: unknown }).EventSource = FakeEventSource;
+  (globalThis as unknown as { EventSource: unknown }).EventSource =
+    FakeEventSource;
   return FakeEventSource;
 }

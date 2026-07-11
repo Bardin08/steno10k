@@ -10,19 +10,46 @@ afterEach(() => vi.restoreAllMocks());
 
 test("maps runs to queue rows with a link to the set run tab", () => {
   vi.spyOn(hooks, "useRuns").mockReturnValue({
-    data: [{ id: "r1", project: "con-law", set_: "jr", status: "running", position: 1, stats: {} }],
-    isLoading: false, isError: false,
+    data: [
+      {
+        id: "r1",
+        project: "con-law",
+        set_: "jr",
+        status: "running",
+        position: 1,
+        stats: {},
+      },
+    ],
+    isLoading: false,
+    isError: false,
   } as unknown as ReturnType<typeof hooks.useRuns>);
   vi.spyOn(hooks, "useProjects").mockReturnValue({
-    data: [{ id: "1", slug: "con-law", title: "Con Law", sets: [
-      { id: "s1", slug: "jr", title: "Judicial Review", project_slug: "con-law", recordings: [], stages: {} },
-    ] }],
-    isLoading: false, isError: false,
+    data: [
+      {
+        id: "1",
+        slug: "con-law",
+        title: "Con Law",
+        sets: [
+          {
+            id: "s1",
+            slug: "jr",
+            title: "Judicial Review",
+            project_slug: "con-law",
+            recordings: [],
+            stages: {},
+          },
+        ],
+      },
+    ],
+    isLoading: false,
+    isError: false,
   } as unknown as ReturnType<typeof hooks.useProjects>);
 
   render(
     <QueryClientProvider client={makeQueryClient()}>
-      <MemoryRouter><QueueScreen /></MemoryRouter>
+      <MemoryRouter>
+        <QueueScreen />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   const link = screen.getByRole("link", { name: /Judicial Review/ });

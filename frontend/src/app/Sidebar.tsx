@@ -40,7 +40,9 @@ export function Sidebar() {
   return (
     <nav className="flex h-full flex-col gap-4 p-4">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">Library</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+          Library
+        </span>
         <Button
           variant="ghost"
           className="px-2 py-1 text-[11px]"
@@ -55,7 +57,11 @@ export function Sidebar() {
       </div>
 
       {projects && projects.length === 0 && (
-        <EmptyState title="No projects yet" description="Create a project to begin." icon={<FolderSimple size={24} weight="duotone" />} />
+        <EmptyState
+          title="No projects yet"
+          description="Create a project to begin."
+          icon={<FolderSimple size={24} weight="duotone" />}
+        />
       )}
 
       <ul className="flex flex-col gap-3">

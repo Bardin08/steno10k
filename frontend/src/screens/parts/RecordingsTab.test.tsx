@@ -12,8 +12,12 @@ function noopMutation() {
 }
 
 function renderTab() {
-  vi.spyOn(hooks, "useUploadRecordings").mockReturnValue(noopMutation() as ReturnType<typeof hooks.useUploadRecordings>);
-  vi.spyOn(hooks, "useDeleteRecording").mockReturnValue(noopMutation() as ReturnType<typeof hooks.useDeleteRecording>);
+  vi.spyOn(hooks, "useUploadRecordings").mockReturnValue(
+    noopMutation() as ReturnType<typeof hooks.useUploadRecordings>,
+  );
+  vi.spyOn(hooks, "useDeleteRecording").mockReturnValue(
+    noopMutation() as ReturnType<typeof hooks.useDeleteRecording>,
+  );
   return render(
     <QueryClientProvider client={makeQueryClient()}>
       <RecordingsTab project="con-law" set="jr" />
@@ -23,8 +27,16 @@ function renderTab() {
 
 test("lists recordings", () => {
   vi.spyOn(hooks, "useRecordings").mockReturnValue({
-    data: [{ source_name: "lecture1.mp3", normalized_name: "lecture1.mp3", duration_seconds: 3600, chunks: ["a", "b"] }],
-    isLoading: false, isError: false,
+    data: [
+      {
+        source_name: "lecture1.mp3",
+        normalized_name: "lecture1.mp3",
+        duration_seconds: 3600,
+        chunks: ["a", "b"],
+      },
+    ],
+    isLoading: false,
+    isError: false,
   } as unknown as ReturnType<typeof hooks.useRecordings>);
   renderTab();
   expect(screen.getByText("lecture1.mp3")).toBeInTheDocument();
@@ -32,7 +44,9 @@ test("lists recordings", () => {
 
 test("empty state when no recordings", () => {
   vi.spyOn(hooks, "useRecordings").mockReturnValue({
-    data: [], isLoading: false, isError: false,
+    data: [],
+    isLoading: false,
+    isError: false,
   } as unknown as ReturnType<typeof hooks.useRecordings>);
   renderTab();
   expect(screen.getByText(/drop audio/i)).toBeInTheDocument();

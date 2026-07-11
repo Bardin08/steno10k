@@ -26,8 +26,13 @@ function initialStages(): RunView["stages"] {
 
 function reduce(state: RunView, ev: RunEvent): RunView {
   const stage = ev.payload.stage as StageName | undefined;
-  const progress = typeof ev.payload.progress === "number" ? ev.payload.progress : undefined;
-  const next: RunView = { ...state, log: [...state.log, ev], stages: { ...state.stages } };
+  const progress =
+    typeof ev.payload.progress === "number" ? ev.payload.progress : undefined;
+  const next: RunView = {
+    ...state,
+    log: [...state.log, ev],
+    stages: { ...state.stages },
+  };
 
   switch (ev.kind) {
     case "run_started":
@@ -68,7 +73,11 @@ const EVENT_KINDS = [
   "error",
 ] as const;
 
-export function useRunEvents(runId: string | null, project?: string, set?: string): RunView {
+export function useRunEvents(
+  runId: string | null,
+  project?: string,
+  set?: string,
+): RunView {
   const qc = useQueryClient();
   const [view, dispatch] = useReducer(reduce, null, () => ({
     status: "queued" as RunStatus,
@@ -80,24 +89,30 @@ export function useRunEvents(runId: string | null, project?: string, set?: strin
   useEffect(() => {
     if (!runId) return;
     const es = new EventSource(apiUrl(`/runs/${runId}/events`));
-    const makeHandler = (kind: (typeof EVENT_KINDS)[number]) => (ev: MessageEvent) => {
-      // Native transport-error events (connection drop/reconnect) have no data —
-      // let EventSource auto-reconnect; don't treat as an app-level terminal.
-      if (typeof ev.data !== "string") return;
-      let payload: Record<string, unknown>;
-      try {
-        payload = JSON.parse(ev.data) as Record<string, unknown>;
-      } catch {
-        return; // ignore malformed frame
-      }
-      dispatch({ kind, payload });
-      if (TERMINAL.has(kind)) {
-        es.close();
-        void qc.invalidateQueries({ queryKey: keys.runs() });
-        if (project && set) void qc.invalidateQueries({ queryKey: keys.artifacts(project, set) });
-      }
-    };
-    EVENT_KINDS.forEach((kind) => es.addEventListener(kind, makeHandler(kind) as EventListener));
+    const makeHandler =
+      (kind: (typeof EVENT_KINDS)[number]) => (ev: MessageEvent) => {
+        // Native transport-error events (connection drop/reconnect) have no data —
+        // let EventSource auto-reconnect; don't treat as an app-level terminal.
+        if (typeof ev.data !== "string") return;
+        let payload: Record<string, unknown>;
+        try {
+          payload = JSON.parse(ev.data) as Record<string, unknown>;
+        } catch {
+          return; // ignore malformed frame
+        }
+        dispatch({ kind, payload });
+        if (TERMINAL.has(kind)) {
+          es.close();
+          void qc.invalidateQueries({ queryKey: keys.runs() });
+          if (project && set)
+            void qc.invalidateQueries({
+              queryKey: keys.artifacts(project, set),
+            });
+        }
+      };
+    EVENT_KINDS.forEach((kind) =>
+      es.addEventListener(kind, makeHandler(kind) as EventListener),
+    );
     return () => es.close();
   }, [runId, project, set, qc]);
 

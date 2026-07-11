@@ -12,10 +12,16 @@ export function AppLayout() {
       </aside>
       <div className="flex flex-col">
         <header className="flex items-center gap-6 border-b border-hairline px-8 py-4">
-          <NavLink to="/" className="text-sm font-medium text-ink">steno10k</NavLink>
+          <NavLink to="/" className="text-sm font-medium text-ink">
+            steno10k
+          </NavLink>
           <nav className="flex gap-5">
-            <NavLink to="/queue" className={topLink}>Queue</NavLink>
-            <NavLink to="/config" className={topLink}>Config</NavLink>
+            <NavLink to="/queue" className={topLink}>
+              Queue
+            </NavLink>
+            <NavLink to="/config" className={topLink}>
+              Config
+            </NavLink>
           </nav>
         </header>
         <main className="mx-auto w-full max-w-[var(--maxw)] px-8 py-12">

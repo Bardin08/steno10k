@@ -13,11 +13,16 @@ export function SetDetail() {
   const { project = "", set = "" } = useParams();
   const [params, setParams] = useSearchParams();
   const raw = params.get("tab");
-  const tab: TabKey = (TABS as readonly string[]).includes(raw ?? "") ? (raw as TabKey) : "recordings";
+  const tab: TabKey = (TABS as readonly string[]).includes(raw ?? "")
+    ? (raw as TabKey)
+    : "recordings";
   const { data, isLoading, isError, refetch } = useSet(project, set);
 
   if (isLoading) return <Skeleton className="h-40 w-full" />;
-  if (isError || !data) return <ErrorState message="Couldn't load this set." onRetry={() => refetch()} />;
+  if (isError || !data)
+    return (
+      <ErrorState message="Couldn't load this set." onRetry={() => refetch()} />
+    );
 
   return (
     <section>
@@ -28,15 +33,24 @@ export function SetDetail() {
         <h1 className="text-4xl text-ink">{data.title}</h1>
       </header>
 
-      <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })}>
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setParams({ tab: v }, { replace: true })}
+      >
         <TabsList>
           <TabsTrigger value="recordings">Recordings</TabsTrigger>
           <TabsTrigger value="run">Run</TabsTrigger>
           <TabsTrigger value="artifacts">Artifacts</TabsTrigger>
         </TabsList>
-        <TabsContent value="recordings"><RecordingsTab project={project} set={set} /></TabsContent>
-        <TabsContent value="run"><RunTab project={project} set={set} /></TabsContent>
-        <TabsContent value="artifacts"><ArtifactsTab project={project} set={set} /></TabsContent>
+        <TabsContent value="recordings">
+          <RecordingsTab project={project} set={set} />
+        </TabsContent>
+        <TabsContent value="run">
+          <RunTab project={project} set={set} />
+        </TabsContent>
+        <TabsContent value="artifacts">
+          <ArtifactsTab project={project} set={set} />
+        </TabsContent>
       </Tabs>
     </section>
   );

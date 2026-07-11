@@ -10,7 +10,8 @@ export const STAGE_NAMES = [
 ] as const;
 export type StageName = (typeof STAGE_NAMES)[number];
 
-export type RunStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+export type RunStatus =
+  "queued" | "running" | "completed" | "failed" | "cancelled";
 
 export interface RecordingDTO {
   source_name: string;

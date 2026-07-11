@@ -9,12 +9,16 @@ import { useProjects } from "./hooks";
 afterEach(() => vi.restoreAllMocks());
 
 function wrap(ui: ReactNode) {
-  return <QueryClientProvider client={makeQueryClient()}>{ui}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={makeQueryClient()}>{ui}</QueryClientProvider>
+  );
 }
 
 function Probe() {
   const q = useProjects();
-  return <div>{q.isLoading ? "loading" : q.data?.map((p) => p.title).join(",")}</div>;
+  return (
+    <div>{q.isLoading ? "loading" : q.data?.map((p) => p.title).join(",")}</div>
+  );
 }
 
 test("useProjects fetches and returns projects", async () => {

@@ -10,14 +10,23 @@ function fmtDuration(sec: number | null): string {
 }
 
 export function RecordingList({
-  recordings, onDelete,
-}: { recordings: RecordingDTO[]; onDelete: (name: string) => void }) {
+  recordings,
+  onDelete,
+}: {
+  recordings: RecordingDTO[];
+  onDelete: (name: string) => void;
+}) {
   return (
     <ul className="flex flex-col gap-2">
       {recordings.map((r) => (
-        <li key={r.normalized_name} className="flex items-center gap-3 rounded-sm border border-hairline bg-paper px-3 py-2.5">
+        <li
+          key={r.normalized_name}
+          className="flex items-center gap-3 rounded-sm border border-hairline bg-paper px-3 py-2.5"
+        >
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-ink">{r.source_name}</div>
+            <div className="truncate text-sm font-medium text-ink">
+              {r.source_name}
+            </div>
             <div className="truncate font-mono text-[11px] text-ink-faint">
               {fmtDuration(r.duration_seconds)} · {r.chunks.length} chunks
             </div>

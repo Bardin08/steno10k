@@ -13,7 +13,11 @@ const BASE = "/api/v1";
 
 interface Envelope<T> {
   data: T | null;
-  error: { code: string; message: string; details?: Record<string, unknown> } | null;
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  } | null;
 }
 
 /** Absolute URL for browser-native GETs (download links, EventSource). */
@@ -27,9 +31,17 @@ async function unwrap<T>(res: Response): Promise<T> {
   try {
     body = (await res.json()) as Envelope<T>;
   } catch {
-    throw new ApiError("request_failed", `${res.status} ${res.statusText}`.trim());
+    throw new ApiError(
+      "request_failed",
+      `${res.status} ${res.statusText}`.trim(),
+    );
   }
-  if (body.error) throw new ApiError(body.error.code, body.error.message, body.error.details ?? {});
+  if (body.error)
+    throw new ApiError(
+      body.error.code,
+      body.error.message,
+      body.error.details ?? {},
+    );
   return body.data as T;
 }
 
@@ -49,7 +61,11 @@ export async function requestText(path: string): Promise<string> {
     try {
       const body = (await res.json()) as Envelope<unknown>;
       if (body.error) {
-        throw new ApiError(body.error.code, body.error.message, body.error.details ?? {});
+        throw new ApiError(
+          body.error.code,
+          body.error.message,
+          body.error.details ?? {},
+        );
       }
     } catch (err) {
       if (err instanceof ApiError) throw err;

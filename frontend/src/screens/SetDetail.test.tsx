@@ -22,8 +22,16 @@ function renderAt(path: string) {
 
 test("renders the set title and three tabs", () => {
   vi.spyOn(hooks, "useSet").mockReturnValue({
-    data: { id: "s1", slug: "jr", title: "Judicial Review", project_slug: "con-law", recordings: [], stages: {} },
-    isLoading: false, isError: false,
+    data: {
+      id: "s1",
+      slug: "jr",
+      title: "Judicial Review",
+      project_slug: "con-law",
+      recordings: [],
+      stages: {},
+    },
+    isLoading: false,
+    isError: false,
   } as unknown as ReturnType<typeof hooks.useSet>);
   renderAt("/p/con-law/s/jr");
   expect(screen.getByText("Judicial Review")).toBeInTheDocument();

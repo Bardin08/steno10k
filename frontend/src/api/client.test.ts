@@ -17,18 +17,28 @@ function mockFetch(status: number, body: unknown, text = false) {
 
 test("request unwraps the {data,error} envelope", async () => {
   mockFetch(200, { data: { slug: "x" }, error: null });
-  await expect(request<{ slug: string }>("/projects")).resolves.toEqual({ slug: "x" });
+  await expect(request<{ slug: string }>("/projects")).resolves.toEqual({
+    slug: "x",
+  });
 });
 
 test("request throws ApiError when error is non-null", async () => {
-  mockFetch(404, { data: null, error: { code: "set_not_found", message: "nope", details: {} } });
+  mockFetch(404, {
+    data: null,
+    error: { code: "set_not_found", message: "nope", details: {} },
+  });
   await expect(request("/x")).rejects.toBeInstanceOf(ApiError);
-  await expect(request("/x")).rejects.toMatchObject({ code: "set_not_found", message: "nope" });
+  await expect(request("/x")).rejects.toMatchObject({
+    code: "set_not_found",
+    message: "nope",
+  });
 });
 
 test("postForm unwraps the envelope on multipart upload", async () => {
   mockFetch(200, { data: { id: "r1" }, error: null });
-  await expect(postForm<{ id: string }>("/recordings", new FormData())).resolves.toEqual({
+  await expect(
+    postForm<{ id: string }>("/recordings", new FormData()),
+  ).resolves.toEqual({
     id: "r1",
   });
 });

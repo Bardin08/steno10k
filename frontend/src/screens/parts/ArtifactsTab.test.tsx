@@ -17,8 +17,11 @@ function renderTab() {
 
 test("lists artifacts", () => {
   vi.spyOn(hooks, "useArtifacts").mockReturnValue({
-    data: [{ name: "summary.md", kind: "text", size: 1200, stage: "summarize" }],
-    isLoading: false, isError: false,
+    data: [
+      { name: "summary.md", kind: "text", size: 1200, stage: "summarize" },
+    ],
+    isLoading: false,
+    isError: false,
   } as unknown as ReturnType<typeof hooks.useArtifacts>);
   renderTab();
   expect(screen.getByText("summary.md")).toBeInTheDocument();
@@ -26,7 +29,9 @@ test("lists artifacts", () => {
 
 test("pending state shows skeleton placeholders when no artifacts", () => {
   vi.spyOn(hooks, "useArtifacts").mockReturnValue({
-    data: [], isLoading: false, isError: false,
+    data: [],
+    isLoading: false,
+    isError: false,
   } as unknown as ReturnType<typeof hooks.useArtifacts>);
   renderTab();
   expect(screen.getAllByRole("status").length).toBeGreaterThan(0);

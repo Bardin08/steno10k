@@ -12,7 +12,9 @@ export function RunTab({ project, set }: { project: string; set: string }) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // Runs list is insertion order (oldest first); the last match for this set is the newest.
-  const latest = runs?.filter((r) => r.project === project && r.set_ === set).at(-1);
+  const latest = runs
+    ?.filter((r) => r.project === project && r.set_ === set)
+    .at(-1);
   const runId = activeId ?? latest?.id ?? null;
   const view = useRunEvents(runId, project, set);
 
@@ -25,8 +27,14 @@ export function RunTab({ project, set }: { project: string; set: string }) {
             enqueue.mutate(
               { project, set },
               {
-                onSuccess: (run) => { setActiveId(run.id); toast.success("Run queued"); },
-                onError: (e) => toast.error(e instanceof ApiError ? e.message : "Couldn't start run"),
+                onSuccess: (run) => {
+                  setActiveId(run.id);
+                  toast.success("Run queued");
+                },
+                onError: (e) =>
+                  toast.error(
+                    e instanceof ApiError ? e.message : "Couldn't start run",
+                  ),
               },
             )
           }
@@ -43,7 +51,10 @@ export function RunTab({ project, set }: { project: string; set: string }) {
           view={view}
           onCancel={() =>
             cancel.mutate(runId, {
-              onError: (e) => toast.error(e instanceof ApiError ? e.message : "Cancel failed"),
+              onError: (e) =>
+                toast.error(
+                  e instanceof ApiError ? e.message : "Cancel failed",
+                ),
             })
           }
         />

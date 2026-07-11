@@ -20,19 +20,38 @@ function renderSidebar() {
 
 test("renders projects and their sets", () => {
   vi.spyOn(hooks, "useProjects").mockReturnValue({
-    data: [{ id: "1", slug: "con-law", title: "Con Law", sets: [
-      { id: "s1", slug: "judicial-review", title: "Judicial Review", project_slug: "con-law", recordings: [], stages: {} },
-    ] }],
-    isLoading: false, isError: false,
+    data: [
+      {
+        id: "1",
+        slug: "con-law",
+        title: "Con Law",
+        sets: [
+          {
+            id: "s1",
+            slug: "judicial-review",
+            title: "Judicial Review",
+            project_slug: "con-law",
+            recordings: [],
+            stages: {},
+          },
+        ],
+      },
+    ],
+    isLoading: false,
+    isError: false,
   } as unknown as ReturnType<typeof hooks.useProjects>);
   renderSidebar();
   expect(screen.getByText("Con Law")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /Judicial Review/ })).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: /Judicial Review/ }),
+  ).toBeInTheDocument();
 });
 
 test("shows empty state when there are no projects", () => {
   vi.spyOn(hooks, "useProjects").mockReturnValue({
-    data: [], isLoading: false, isError: false,
+    data: [],
+    isLoading: false,
+    isError: false,
   } as unknown as ReturnType<typeof hooks.useProjects>);
   renderSidebar();
   expect(screen.getByText(/no projects/i)).toBeInTheDocument();
