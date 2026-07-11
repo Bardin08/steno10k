@@ -8,6 +8,7 @@ from steno10k.api import create_app
 from steno10k.api.stages import STAGE_DEPS
 from steno10k.contracts.names import StageName
 from steno10k.contracts.stage import resolve_enabled
+from steno10k.lib.prompts import PROMPT_NAMES, default_prompt
 
 
 def test_config_get_put_defaults(tmp_path: Path) -> None:
@@ -37,8 +38,10 @@ def test_prompts_get_put_reset(tmp_path: Path) -> None:
     r = c.get("/api/v1/prompts")
     assert r.status_code == 200
     names = {p["name"] for p in r.json()["data"]}
-    assert "clean" in names
+    assert names == set(PROMPT_NAMES)
     assert all(p["source"] == "default" for p in r.json()["data"])
+    clean = next(p for p in r.json()["data"] if p["name"] == "clean")
+    assert clean["content"] == default_prompt("clean")
 
     r = c.put("/api/v1/prompts/clean", json={"content": "custom clean prompt"})
     assert r.status_code == 200
