@@ -36,7 +36,7 @@ _WORKER_MODEL: Any = None
 _WORKER_SETTINGS: TranscribeSettings | None = None
 
 
-def _ensure_model(settings: TranscribeSettings) -> Any:  # noqa: ANN401
+def _ensure_model(settings: TranscribeSettings) -> Any:
     global _WORKER_MODEL, _WORKER_SETTINGS
     if _WORKER_MODEL is not None and _WORKER_SETTINGS == settings:
         return _WORKER_MODEL

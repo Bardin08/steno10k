@@ -96,8 +96,9 @@ def test_missing_api_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
         OpenAICompatibleClient(_cfg())
 
 
-def test_no_vendor_names_in_source() -> None:
-    src = (Path(__file__).resolve().parents[2] / "src" / "steno10k" / "lib" / "llm.py").read_text()
-    lowered = src.lower()
-    for vendor in ("gemini", "anthropic", "claude", "google"):
-        assert vendor not in lowered
+def test_no_vendor_names_anywhere_in_lib() -> None:
+    lib_dir = Path(__file__).resolve().parents[2] / "src" / "steno10k" / "lib"
+    for py in lib_dir.glob("*.py"):
+        lowered = py.read_text(encoding="utf-8").lower()
+        for vendor in ("gemini", "anthropic", "claude", "google"):
+            assert vendor not in lowered, f"vendor name {vendor!r} in {py.name}"
