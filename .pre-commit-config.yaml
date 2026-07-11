@@ -1,0 +1,36 @@
+# Local hooks use the tools already installed by `uv sync` and `npm install`,
+# so there are no external revs to keep in sync. Install with `pre-commit install`.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (backend)
+        entry: bash -c 'cd backend && uv run ruff check .'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+      - id: ruff-format
+        name: ruff format (backend)
+        entry: bash -c 'cd backend && uv run ruff format --check .'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+      - id: prettier
+        name: prettier (frontend)
+        entry: bash -c 'cd frontend && npx prettier --check .'
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+
+      - id: conventional-commit
+        name: conventional commit message
+        language: system
+        stages: [commit-msg]
+        pass_filenames: true
+        entry: >-
+          python3 -c "import re,sys;
+          msg=open(sys.argv[1],encoding='utf-8').read().strip().splitlines()[0] if open(sys.argv[1],encoding='utf-8').read().strip() else '';
+          ok=re.match(r'^(feat|fix|chore|docs|test|refactor|ci|build|perf|style|revert)(\(.+\))?!?: .+', msg);
+          sys.exit(0) if ok else (print('commit message must follow Conventional Commits, e.g. \'feat: ...\'') or sys.exit(1))"

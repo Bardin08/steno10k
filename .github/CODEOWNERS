@@ -1,0 +1,7 @@
+# Auto-request review on the frozen contracts (F0 §3.2). These files are the
+# shared interfaces; changes to them must be coordinated (see AGENTS.md).
+
+/backend/src/steno10k/contracts/   @Bardin08
+/backend/src/steno10k/api/         @Bardin08
+/frontend/src/design/tokens.css    @Bardin08
+/docs/standards/                   @Bardin08
