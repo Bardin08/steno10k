@@ -1,0 +1,128 @@
+/* ============================================================
+   steno10k — "Editorial Machine" design tokens (FROZEN CONTRACT)
+   Source of truth. Values from docs/design/steno10k-style-preview.html.
+   Edits require the contract-lock protocol (AGENTS.md).
+   @theme registers tokens -> auto-generates bg-* / text-* / border-* /
+   rounded-* / font-* / ease-* utilities. [data-theme="dark"] overrides the
+   same CSS vars so the theme flips at runtime with no dark: variants.
+   ============================================================ */
+@theme {
+  /* canvas — restrained near-neutral paper (NOT saturated cream) */
+  --color-paper: #f6f5f2;
+  --color-surface: #ffffff;
+  --color-sink: #efeeea;
+  --color-ink: #1a1917;
+  --color-ink-soft: #55524c;
+  --color-ink-faint: #8b877f;
+  --color-hairline: #e2e0da;
+  --color-hairline-strong: #cfccc4;
+
+  /* single functional accent — muted evergreen (no AI blue/purple) */
+  --color-accent: #3f6b52;
+  --color-accent-wash: #eef4ef;
+  --color-accent-ink: #2c4d3a;
+
+  /* type triad */
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+
+  /* shape */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-pill: 999px;
+
+  /* motion — Emil's numbers */
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Non-utility design vars (durations, shadow, layout width). */
+:root {
+  --dur-micro: 140ms;
+  --dur: 200ms;
+  --dur-lg: 280ms;
+  --shadow-soft:
+    0 1px 2px rgba(26, 25, 23, 0.04), 0 6px 16px rgba(26, 25, 23, 0.05);
+  --maxw: 1180px;
+}
+
+/* Dark theme — a first-class peer. Never pure black/white (Taste). */
+[data-theme="dark"] {
+  --color-paper: #171614;
+  --color-surface: #1f1e1b;
+  --color-sink: #262420;
+  --color-ink: #ecebe6;
+  --color-ink-soft: #a8a49b;
+  --color-ink-faint: #726e65;
+  --color-hairline: #2e2c28;
+  --color-hairline-strong: #3a3833;
+  --color-accent: #6fa585;
+  --color-accent-wash: #1e2a22;
+  --color-accent-ink: #a9cdb8;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* Base typography + the mandatory reduced-motion kill-switch. */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.55;
+    letter-spacing: -0.006em;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    text-wrap: balance;
+    letter-spacing: -0.018em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  @keyframes overlay-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+  @keyframes drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+}
