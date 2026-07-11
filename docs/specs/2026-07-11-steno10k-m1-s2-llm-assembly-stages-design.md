@@ -160,12 +160,17 @@ before/after; if it rose, return `StageResult(FAILED, ...)`, else `OK`.
 
 The terminal stage. It **emits**, it does not push to any external sink (Telegram
 is deferred to M3+). It collects the produced artifact paths (summary, the two
-`bundle/*.docx`, the merged files) relative to `set_dir` and returns them in
-`StageResult.stats` (`{"artifacts": [...]}`). `run_set` then emits
-`STAGE_COMPLETED` (and, at loop end, `RUN_COMPLETED`) carrying those stats, which
-the SSE bridge and any future subscriber read. **No new `EventKind`** is added
-(`contracts.events` is frozen); the completion signal rides existing kinds +
-stats. `enabled = True`. Status `OK`.
+`bundle/*.docx`, the merged files) relative to `set_dir` and **emits its own event
+directly** via `ctx.events`: `Event(EventKind.STAGE_PROGRESS, payload={"stage":
+"notify", "artifacts": [...]})`. This is the "emit" in *notify-emit* — a richer
+signal than `run_set`'s generic per-stage event, which the SSE bridge and any
+future subscriber (Telegram) read. **No new `EventKind`** is added
+(`contracts.events` is frozen); the payload rides the existing `STAGE_PROGRESS`
+kind, whose `Event.payload` is `dict[str, Any]` and so carries the list. The
+returned `StageResult(OK, stats={"artifacts": <count>})` holds only the **count**
+— `StageResult.stats` is typed `dict[str, int]`, and `run_set`'s auto-emitted
+event payload carries only `stats`, not `message`, so the list must go through the
+explicit event, not the result. `enabled = True`. Status `OK`.
 
 ## 5. Config & context usage (no contract changes)
 
@@ -218,7 +223,8 @@ Stages are pure-CI testable — **no** ffmpeg/whisper/network — using fakes:
   (`ctx.errors.count`), and the `enabled()` gate matrix (LLM off / `skip_llm` /
   `save_bundle_docx`). `merge` covers raw-only (clean disabled). `bundle` uses the
   real `lib.docx` (round-trips a `.docx`) and asserts FAILED on a forced render
-  error. `notify` asserts the artifact list in `stats`.
+  error. `notify` asserts the artifact list in the emitted `STAGE_PROGRESS`
+  event payload (captured via a subscribed `EventBus`) and the count in `stats`.
 - `_pool` helper: inline (`concurrency=1`) and pooled paths, plus one-bad-item
   isolation.
 - Router rewiring: existing `tests/api/test_config_prompts.py` retargeted to the
@@ -249,7 +255,8 @@ Stages are pure-CI testable — **no** ffmpeg/whisper/network — using fakes:
 - Given seeded `transcripts_raw/`, a `merge → summarize → bundle → notify` run
   (with `clean` ahead) produces `transcripts_clean/`, `merged/{raw,clean}_
   transcript.md`, the configured summary file, `bundle/{transcript,summary}.docx`,
-  and a `notify` `stats.artifacts` list — all under the set dir.
+  and a `notify`-emitted `STAGE_PROGRESS` event whose payload lists those artifacts
+  (count mirrored in `stats`) — all under the set dir.
 - LLM stages call only `ctx.llm.complete`; are gated off by `skip_llm` /
   `llm.enabled`; and degrade to `SKIPPED` when `ctx.llm is None`.
 - Stages are idempotent (skip existing outputs) and honor `ctx.force`; per-item
