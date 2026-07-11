@@ -4,6 +4,7 @@ import logging
 import re
 from pathlib import Path
 
+from docx import Document as new_document
 from docx.document import Document
 from docx.text.paragraph import Paragraph
 
@@ -84,3 +85,33 @@ def render_markdown_to_docx(markdown: str, doc: Document) -> None:
             _apply_inline(doc.add_paragraph(style="List Number"), m.group(1).strip())
             continue
         _apply_inline(doc.add_paragraph(), line.strip())
+
+
+def _build_one(source: Path, dst: Path, force: bool) -> None:
+    """Render one markdown source into one .docx at dst. Assumes source exists."""
+    if dst.exists() and not force:
+        return
+    doc = new_document()
+    render_markdown_to_docx(source.read_text(encoding="utf-8"), doc)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(str(dst))
+
+
+def build_bundle(
+    pairs: list[tuple[Path, Path]],
+    force: bool,
+    err_log: ErrorLog,
+) -> None:
+    """Render each (markdown_path -> docx_path) pair independently.
+
+    A missing source is skipped silently (not an error). A render failure on one
+    pair is logged to `err_log` and does not abort the others (per-file isolation).
+    """
+    for source, dst in pairs:
+        if not source.exists():
+            log.info("bundle: skipping %s (source %s not found)", dst.name, source.name)
+            continue
+        try:
+            _build_one(source, dst, force)
+        except Exception as e:  # per-file isolation boundary (lxml/zip errors, etc.)
+            err_log.log("bundle", dst.name, e)
