@@ -95,6 +95,9 @@ class RunQueue:
     # -- public API ------------------------------------------------------
 
     def enqueue(self, project: str, set_: str) -> Run:
+        # position is a best-effort snapshot of queue depth at enqueue time;
+        # it is never updated afterwards, so it can go stale as other runs
+        # complete or are cancelled ahead of this one.
         run = Run(id=new_id(), project=project, set_=set_, position=self._queue.qsize())
         bus = EventBus()
         bus.subscribe(functools.partial(self._record_event, run.id))
@@ -192,8 +195,9 @@ class RunQueue:
         except Exception as exc:  # isolation boundary: one bad run must not kill the worker
             log.exception("run %s failed", run_id)
             with self._lock:
-                run.status = RunStatus.FAILED
-                run.stats["error"] = str(exc)
+                if run.status is not RunStatus.CANCELLED:
+                    run.status = RunStatus.FAILED
+                    run.stats["error"] = str(exc)
             return
 
         with self._lock:
