@@ -114,5 +114,19 @@ class Storage:
         manifest.recordings.extend(recordings)
         manifest.save(manifest_file)
 
+    def remove_recording(self, project_slug: str, set_slug: str, normalized_name: str) -> None:
+        manifest_file = self.set_dir(project_slug, set_slug) / _MANIFEST_FILE
+        if not manifest_file.is_file():
+            raise NotFound(f"set not found: {project_slug}/{set_slug}")
+        manifest = Manifest.load(manifest_file)
+        remaining = [r for r in manifest.recordings if r.normalized_name != normalized_name]
+        if len(remaining) == len(manifest.recordings):
+            raise NotFound(f"recording not found: {project_slug}/{set_slug}/{normalized_name}")
+        manifest.recordings = remaining
+        manifest.save(manifest_file)
+        recording_file = self.set_dir(project_slug, set_slug) / normalized_name
+        if recording_file.is_file():
+            recording_file.unlink()
+
     def set_dir(self, project_slug: str, set_slug: str) -> Path:
         return self._root / project_slug / set_slug
