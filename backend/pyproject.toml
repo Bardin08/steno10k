@@ -3,10 +3,10 @@ name = "steno10k"
 version = "0.1.0"
 description = "Local-first audio -> transcript + summary pipeline"
 requires-python = ">=3.12"
-dependencies = ["fastapi>=0.115", "uvicorn[standard]>=0.32", "pydantic>=2.9"]
+dependencies = ["fastapi>=0.115", "uvicorn[standard]>=0.32", "pydantic>=2.9", "pyyaml>=6.0"]
 
 [dependency-groups]
-dev = ["ruff>=0.7", "mypy>=1.13", "pytest>=8.3", "httpx>=0.27"]
+dev = ["ruff>=0.7", "mypy>=1.13", "pytest>=8.3", "httpx>=0.27", "types-pyyaml"]
 
 [build-system]
 requires = ["hatchling"]
