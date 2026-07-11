@@ -19,6 +19,9 @@ Operating rules for any agent (and human) working in this repo. Keep it loaded.
 - **PRs:** `gh pr create`, link the issue (`Closes #N`), fill the template,
   keep the description concise and high-signal. CI must be green; PRs are
   squash-merged.
+- **No AI attribution — ever.** Never add assistant/AI attribution to commits, PRs,
+  code, or docs: no `Co-Authored-By: Claude…`, no "Generated with Claude Code", no
+  🤖 trailers. Author every change as your own.
 - **Parallel sessions:** use `git worktree` so each session has an isolated tree.
 
 ## Frozen contracts — do NOT edit in a feature/fan-out PR
@@ -47,6 +50,14 @@ When a change genuinely must touch a frozen contract:
 4. Remove the lock when the contract PR merges.
 
 This advisory local lock complements GitHub branch protection + CODEOWNERS.
+
+**Other shared resources that need the same lock.** Not every shared resource is a
+"frozen contract", but anything with **shared sequential state** collides under
+parallel work and must be coordinated the same way:
+
+- **`docs/adr/` numbering** — the next ADR number is shared. Before adding an ADR,
+  take a `~/.claude/locks/steno10k/adr.lock.md` lock, compute the next number, then
+  release on merge. Two agents both grabbing `0001` otherwise clobber each other.
 
 ## Design & code standards (pointers)
 
