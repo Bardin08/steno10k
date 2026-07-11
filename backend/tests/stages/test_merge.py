@@ -49,6 +49,21 @@ def test_recording_order_follows_manifest(set_dir):
     assert raw_md.index("## b-rec") < raw_md.index("## a-rec")
 
 
+def test_unreadable_chunk_skipped_without_orphan_header(set_dir):
+    seed_raw(set_dir, "rec-1", ["good chunk"])  # writes chunk_000.txt
+    bad = set_dir / "transcripts_raw" / "rec-1" / "chunk_001.txt"
+    bad.write_bytes(b"\xff\xfe\xff")  # invalid UTF-8 -> read fails
+    ctx = make_ctx(set_dir)
+
+    result = MergeStage().run(ctx)
+
+    raw_md = (set_dir / "merged" / "raw_transcript.md").read_text(encoding="utf-8")
+    assert "### chunk_000" in raw_md and "good chunk" in raw_md
+    assert "### chunk_001" not in raw_md  # no orphan header for the unreadable chunk
+    assert ctx.errors.count == 1
+    assert result.stats["raw"] == 1
+
+
 def test_no_inputs_writes_nothing(set_dir):
     ctx = make_ctx(set_dir)
     result = MergeStage().run(ctx)

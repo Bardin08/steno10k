@@ -52,13 +52,19 @@ class MergeStage:
             files = sorted(d.glob(glob))
             if not files:
                 continue
-            parts.append(f"\n\n## {stem}\n")
+            chunk_parts: list[str] = []
             for f in files:
-                parts.append(f"\n### {f.stem}\n")
                 try:
-                    parts.append(f.read_text(encoding="utf-8").strip())
+                    body = f.read_text(encoding="utf-8").strip()
                 except (OSError, UnicodeDecodeError) as e:
                     ctx.errors.log("merge", str(f), e)
+                    continue
+                chunk_parts.append(f"\n### {f.stem}\n")
+                chunk_parts.append(body)
+            if not chunk_parts:
+                continue  # every chunk for this stem failed to read
+            parts.append(f"\n\n## {stem}\n")
+            parts.extend(chunk_parts)
         if not parts:
             return False
         dst.parent.mkdir(parents=True, exist_ok=True)
