@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from steno10k.contracts.names import StageName
+from steno10k.contracts.registry import StageRegistry
 
 # Canonical stage dependency graph. Used now by the config cascade (api/routers/config.py
 # resolves which stages get cascaded off when a dependency is disabled). Task 9 adds
@@ -26,3 +27,14 @@ STAGE_DEPS: dict[StageName, list[StageName]] = {
     StageName.BUNDLE: [StageName.MERGE],
     StageName.NOTIFY: [StageName.BUNDLE],
 }
+
+
+def build_registry() -> StageRegistry:
+    """Assemble the concrete `StageRegistry` the run queue executes.
+
+    Empty/stub for F2: no concrete `Stage` implementations exist yet.
+    Real stages register here during fan-out (one module per stage under
+    `api/`, imported and appended to this list) — the run worker is already
+    wired to execute whatever this returns.
+    """
+    return StageRegistry([])

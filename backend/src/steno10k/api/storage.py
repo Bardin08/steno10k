@@ -23,6 +23,10 @@ class Storage:
     def __init__(self, data_root: Path) -> None:
         self._root = data_root
 
+    @property
+    def data_root(self) -> Path:
+        return self._root
+
     # -- projects ----------------------------------------------------------
 
     def create_project(self, title: str) -> Project:
@@ -130,3 +134,12 @@ class Storage:
 
     def set_dir(self, project_slug: str, set_slug: str) -> Path:
         return self._root / project_slug / set_slug
+
+    def manifest_path(self, project_slug: str, set_slug: str) -> Path:
+        return self.set_dir(project_slug, set_slug) / _MANIFEST_FILE
+
+    def load_manifest(self, project_slug: str, set_slug: str) -> Manifest:
+        manifest_file = self.manifest_path(project_slug, set_slug)
+        if not manifest_file.is_file():
+            raise NotFound(f"set not found: {project_slug}/{set_slug}")
+        return Manifest.load(manifest_file)
