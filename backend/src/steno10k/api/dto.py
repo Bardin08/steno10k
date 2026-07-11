@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel
 
+from steno10k.api.runq import Run
 from steno10k.contracts.domain import Project, Recording, RecordingSet
 
 
@@ -56,3 +59,23 @@ class ProjectDTO(BaseModel):
 
 class CreateTitle(BaseModel):
     title: str
+
+
+class RunDTO(BaseModel):
+    id: str
+    project: str
+    set_: str
+    status: str
+    position: int
+    stats: dict[str, Any]
+
+    @classmethod
+    def from_domain(cls, r: Run) -> RunDTO:
+        return cls(
+            id=r.id,
+            project=r.project,
+            set_=r.set_,
+            status=str(r.status),
+            position=r.position,
+            stats=dict(r.stats),
+        )
