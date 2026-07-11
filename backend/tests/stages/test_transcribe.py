@@ -8,6 +8,7 @@ import steno10k.stages.transcribe as transcribe_mod
 from stages.conftest import MakeCtx
 from steno10k.contracts.domain import Recording
 from steno10k.contracts.events import EventKind
+from steno10k.contracts.status import StageStatus
 from steno10k.lib.transcriber import TranscribeJob, TranscribeSettings
 from steno10k.stages.transcribe import (
     _M1_BEAM_SIZE,
@@ -129,3 +130,30 @@ def test_no_chunks_never_invokes_worker(make_ctx: MakeCtx, monkeypatch: pytest.M
     result = TranscribeStage().run(ctx)
     assert result.stats == {"chunks": 0, "transcribed": 0, "failed": 0}
     assert called == []
+
+
+def test_worker_crash_is_isolated_per_recording(
+    make_ctx: MakeCtx, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fake_transcribe(
+        jobs: list[TranscribeJob], settings: TranscribeSettings, max_workers: int
+    ) -> list[tuple[Path, str | None]]:
+        if jobs[0].chunk_path.parent.name == "bad":
+            raise RuntimeError("BrokenProcessPool")  # whole-batch crash
+        out: list[tuple[Path, str | None]] = []
+        for j in jobs:
+            j.output_path.parent.mkdir(parents=True, exist_ok=True)
+            j.output_path.write_text("ok", encoding="utf-8")
+            out.append((j.output_path, None))
+        return out
+
+    monkeypatch.setattr(transcribe_mod, "transcribe_chunks", fake_transcribe)
+    bad = Recording(source_name="bad.m4a", normalized_name="bad.m4a")
+    good = Recording(source_name="good.m4a", normalized_name="good.m4a")
+    ctx, _ = make_ctx([bad, good])
+    _make_chunk(ctx.set_dir, "bad", 0)
+    _make_chunk(ctx.set_dir, "good", 0)
+    result = TranscribeStage().run(ctx)
+    assert ctx.errors.count == 1  # the crashed recording was logged
+    assert (ctx.set_dir / "transcripts_raw" / "good" / "chunk_000.txt").exists()  # sibling survived
+    assert result.status is StageStatus.OK

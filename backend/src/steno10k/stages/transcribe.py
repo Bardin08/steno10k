@@ -51,22 +51,31 @@ class TranscribeStage:
         total = len(recordings)
         processed = 0
         failed = 0
+        # Transcribe one recording at a time (one transcribe_chunks call each) so we can
+        # emit STAGE_PROGRESS after every recording — transcribe is the longest stage and
+        # live progress matters most here. Trade-off: with max_workers > 1 each call spins
+        # up its own ProcessPoolExecutor, so workers reload the Whisper model once per
+        # recording rather than once per run. Accepted for M1 (a working pipeline over peak
+        # throughput); revisit in the M2 performance pass.
         for i, rec in enumerate(recordings):
-            stem = Path(rec.normalized_name).stem
-            chunk_dir = ctx.set_dir / "chunks" / stem
-            jobs: list[TranscribeJob] = []
-            if chunk_dir.is_dir():
-                for chunk_path in sorted(chunk_dir.glob(f"*.{fmt}")):
-                    out = ctx.set_dir / "transcripts_raw" / stem / f"{chunk_path.stem}.txt"
-                    if out.exists() and not ctx.force:
-                        continue
-                    jobs.append(TranscribeJob(chunk_path=chunk_path, output_path=out))
-            if jobs:
-                for out_path, err in transcribe_chunks(jobs, settings, max_workers):
-                    processed += 1
-                    if err is not None:
-                        failed += 1
-                        ctx.errors.log("transcribe", out_path.name, err)
+            try:
+                stem = Path(rec.normalized_name).stem
+                chunk_dir = ctx.set_dir / "chunks" / stem
+                jobs: list[TranscribeJob] = []
+                if chunk_dir.is_dir():
+                    for chunk_path in sorted(chunk_dir.glob(f"*.{fmt}")):
+                        out = ctx.set_dir / "transcripts_raw" / stem / f"{chunk_path.stem}.txt"
+                        if out.exists() and not ctx.force:
+                            continue
+                        jobs.append(TranscribeJob(chunk_path=chunk_path, output_path=out))
+                if jobs:
+                    for out_path, err in transcribe_chunks(jobs, settings, max_workers):
+                        processed += 1
+                        if err is not None:
+                            failed += 1
+                            ctx.errors.log("transcribe", f"{stem}/{out_path.stem}", err)
+            except Exception as exc:  # recording-level isolation (e.g. broken worker pool)
+                ctx.errors.log("transcribe", rec.normalized_name, exc)
             ctx.events.emit(
                 Event(
                     kind=EventKind.STAGE_PROGRESS,
