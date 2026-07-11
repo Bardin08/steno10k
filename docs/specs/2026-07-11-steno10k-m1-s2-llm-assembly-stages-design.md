@@ -10,8 +10,9 @@ on-disk contract._
 Parent vision: `2026-07-11-new-audio-pipeline-vision-design.md`.
 Parent decomposition: `2026-07-11-steno10k-m1-decomposition-design.md`.
 Sibling library: `2026-07-11-steno10k-m1-l-utility-library-design.md`.
-Depends on: F1 (contracts), **M1·L** (prompts, docx). Consumes **M1·S1** output by
-contract. Reference/parts bin: `lecturemate10k`.
+Depends on: F1 (contracts), **M1·L — merged (#14)**; its `lib/` surfaces are
+verified against this branch (rebased on `origin/main`). Consumes **M1·S1** output
+by contract (S1 not yet merged). Reference/parts bin: `lecturemate10k`.
 Status: design spec, for review. Date: 2026-07-11.
 
 ---
@@ -38,10 +39,13 @@ one job, writes its outputs under the set directory, and returns a `StageResult`
 
 ## 2. What S2 consumes (pinned surfaces)
 
-S1 and L are not merged when this spec is written; S2 is planned against their
-**declared** surfaces so the units stay consistent.
+**M1·L is merged (#14)** and its surfaces below are verified against the rebased
+branch. S1 is not yet merged, so its output is consumed by the on-disk contract in
+§3 (no S1 import). A clean rebase onto `origin/main` confirmed **no file conflicts**
+— L touches `lib/`, S2 adds `stages/`, and the one shared file (`api/routers/
+prompts.py`, §6) is still on F2's placeholder defaults.
 
-**From M1·L** (`steno10k/lib/`, per its spec/plan):
+**From M1·L** (`steno10k/lib/`, verified against merged code):
 
 - `lib.prompts.load_prompts(override_dir: Path | None) -> Prompts` returning a
   frozen `Prompts(clean: str, summarize: str)`. Each prompt is a **single
@@ -220,9 +224,9 @@ Stages are pure-CI testable — **no** ffmpeg/whisper/network — using fakes:
 - Router rewiring: existing `tests/api/test_config_prompts.py` retargeted to the
   `lib.prompts` default text; list/put/reset behavior unchanged.
 - **Execution note:** S2 imports `steno10k.lib` (and, via `lib.docx`,
-  `python-docx`), so the suite is green only once **M1·L is merged to `main`**.
-  Per the build waves, L lands first; S2 branches from `main` after. Planning does
-  not wait on L.
+  `python-docx`). **M1·L is now merged to `main` and this branch is rebased onto
+  it**, so the suite runs green immediately — the only fixtures S2 hand-seeds are
+  the `transcripts_raw/` files that S1 will produce at runtime.
 
 ## 8. Out of scope for S2
 
@@ -256,5 +260,5 @@ Stages are pure-CI testable — **no** ffmpeg/whisper/network — using fakes:
 - `api/routers/prompts.py` sources defaults from `lib.prompts` with the API surface
   unchanged (routes, `PromptDTO`, `source` values); prompts-router tests pass
   against the new defaults; no frozen DTO/OpenAPI change.
-- The full stage + router suite passes in CI (no ffmpeg/whisper/network) once L is
-  on `main`.
+- The full stage + router suite passes in CI (no ffmpeg/whisper/network) on current
+  `main` (L merged, #14) — no additional dependency wait.
