@@ -5,6 +5,9 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from steno10k.api import create_app
+from steno10k.api.stages import STAGE_DEPS
+from steno10k.contracts.names import StageName
+from steno10k.contracts.stage import resolve_enabled
 
 
 def test_config_get_put_defaults(tmp_path: Path) -> None:
@@ -61,3 +64,29 @@ def test_prompts_unknown_name_404(tmp_path: Path) -> None:
     r = c.put("/api/v1/prompts/nope", json={"content": "x"})
     assert r.status_code == 404
     assert r.json()["error"]["code"] == "prompt_not_found"
+
+
+def test_disabling_clean_cascades_summarize_off() -> None:
+    flags = {k: True for k in STAGE_DEPS}
+    flags[StageName.CLEAN] = False
+    enabled, cascaded = resolve_enabled(STAGE_DEPS, flags)
+
+    # summarize reads the clean merged transcript, so it must cascade off too.
+    assert StageName.SUMMARIZE not in enabled
+    assert cascaded[StageName.SUMMARIZE] == StageName.CLEAN
+
+    # merge and bundle don't hard-depend on clean (raw pipeline is valid), so
+    # they must remain enabled -- this is the "not over-constrained" check.
+    assert StageName.MERGE in enabled
+    assert StageName.BUNDLE in enabled
+
+
+def test_disabling_merge_still_cascades_summarize_off() -> None:
+    flags = {k: True for k in STAGE_DEPS}
+    flags[StageName.MERGE] = False
+    enabled, cascaded = resolve_enabled(STAGE_DEPS, flags)
+
+    assert StageName.SUMMARIZE not in enabled
+    assert cascaded[StageName.SUMMARIZE] == StageName.MERGE
+    assert StageName.BUNDLE not in enabled
+    assert cascaded[StageName.BUNDLE] == StageName.MERGE
