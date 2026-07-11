@@ -69,6 +69,37 @@ def test_upload_rejects_oversize_file_without_buffering(
     assert not (tmp_path / "law" / "week-1" / "lecture.m4a").exists()
 
 
+def test_upload_mixed_multi_file_rolls_back_orphans_on_failure(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    import pytest
+
+    mp = monkeypatch
+    assert isinstance(mp, pytest.MonkeyPatch)
+    # Shrink the cap + chunk size so the test doesn't need to move real gigabytes.
+    mp.setattr(recordings_router, "_MAX_FILE_BYTES", 10)
+    mp.setattr(recordings_router, "_READ_CHUNK_BYTES", 4)
+
+    c = _client(tmp_path)
+    files = [
+        ("files", ("first.m4a", b"small", "audio/mp4")),
+        ("files", ("second.m4a", b"x" * 11, "audio/mp4")),
+    ]
+    r = c.post("/api/v1/projects/law/sets/week-1/recordings", files=files)
+    assert r.status_code == 413
+    assert r.json()["error"]["code"] == "file_too_large"
+
+    set_dir = tmp_path / "law" / "week-1"
+    # no orphan recording files left behind from the earlier, successfully-written
+    # entry (manifest.json is pre-existing set metadata, not a recording)
+    assert not (set_dir / "first.m4a").exists()
+    assert not (set_dir / "second.m4a").exists()
+    assert [p.name for p in set_dir.iterdir()] == ["manifest.json"]
+
+    r = c.get("/api/v1/projects/law/sets/week-1/recordings")
+    assert r.json()["data"] == []
+
+
 def test_upload_missing_set_returns_404(tmp_path: Path) -> None:
     c = _client(tmp_path)
     files = [("files", ("lecture.m4a", b"data", "audio/mp4"))]

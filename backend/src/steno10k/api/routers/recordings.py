@@ -87,11 +87,23 @@ async def upload_recordings(
 
     existing = {p.name for p in set_dir.iterdir()} if set_dir.is_dir() else set()
     recordings: list[Recording] = []
+    written: list[Path] = []
     for f in files:
         source_name = f.filename or "upload"
         normalized_name = _normalized_filename(source_name, existing)
         existing.add(normalized_name)
-        await _write_capped(f, set_dir / normalized_name)
+        dest = set_dir / normalized_name
+        try:
+            await _write_capped(f, dest)
+        except Exception:
+            # Roll back: this request is all-or-nothing, so remove the
+            # current partial file plus everything already written for
+            # earlier entries in this same request before re-raising.
+            dest.unlink(missing_ok=True)
+            for path in written:
+                path.unlink(missing_ok=True)
+            raise
+        written.append(dest)
         recordings.append(Recording(source_name=source_name, normalized_name=normalized_name))
 
     storage.add_recordings(project, set_, recordings)
