@@ -27,7 +27,7 @@ Created under `backend/`:
 - `src/steno10k/lib/llm.py` — `OpenAICompatibleClient` implementing `contracts.llm.LLMClient`.
 - `src/steno10k/lib/transcriber.py` — faster-whisper worker + `transcribe_chunks`.
 - `tests/lib/test_*.py` — ported + new unit tests.
-- `docs/adr/0001-defer-llm-and-whisper-config-knobs.md` — deferred-config decision record.
+- `docs/adr/<NNNN>-defer-llm-and-whisper-config-knobs.md` — deferred-config decision record (number assigned under the ADR lock, Task 10).
 - `backend/pyproject.toml` — new runtime deps + mypy overrides (modified).
 
 ---
@@ -67,7 +67,7 @@ Acceptance (from the spec §7):
 - [ ] `build_bundle` decoupled from lecture paths/naming; uses `contracts.errors.ErrorLog`.
 - [ ] Ported + new tests pass in CI with no ffmpeg/whisper binaries; binary tests skip cleanly.
 - [ ] New runtime deps declared; `ffmpeg` documented + guarded by `ensure_ffmpeg_available`.
-- [ ] Deferred-config ADR (docs/adr/0001-…) added.
+- [ ] Deferred-config ADR (docs/adr/, next number under lock) added.
 EOF
 )")
 echo "Created: $ISSUE_URL"
@@ -1276,7 +1276,7 @@ from steno10k.lib.retry import compute_backoff_wait, extract_retry_after_seconds
 log = logging.getLogger("steno10k.llm")
 
 # Retry/timeout policy is a hardcoded M1 constant set — not a user knob. Deferred
-# to M2; see docs/adr/0001-defer-llm-and-whisper-config-knobs.md.
+# to M2; see the deferred-config ADR under docs/adr/.
 _TIMEOUT_SECONDS = 120
 _MAX_RETRIES = 3
 _RETRY_INITIAL_WAIT = 2.0
@@ -1526,19 +1526,44 @@ git commit -m "feat(lib): faster-whisper transcription worker"
 
 ---
 
-## Task 10: Deferred-config ADR
+## Task 10: Deferred-config ADR (shared resource — take the ADR lock)
 
-Record the §3 decision durably in `docs/` (per review feedback).
+Record the §3 decision durably in `docs/`. **`docs/adr/` numbering is shared state**: parallel agents both grabbing `0001` collide, so this follows the lock protocol (AGENTS.md) and computes the next number dynamically.
 
 **Files:**
-- Create: `docs/adr/0001-defer-llm-and-whisper-config-knobs.md`
+- Create: `~/.claude/locks/steno10k/adr.lock.md` (lock — outside the repo)
+- Create: `docs/adr/<NNNN>-defer-llm-and-whisper-config-knobs.md`
 
-- [ ] **Step 1: Write the ADR**
+- [ ] **Step 1: Check for and acquire the ADR lock**
 
-Create `docs/adr/0001-defer-llm-and-whisper-config-knobs.md`:
+```bash
+mkdir -p ~/.claude/locks/steno10k
+# If adr.lock.md already exists and is NOT yours, WAIT until it clears before proceeding.
+ls -la ~/.claude/locks/steno10k/adr.lock.md 2>/dev/null && echo "LOCK HELD — wait" || echo "free"
+cat > ~/.claude/locks/steno10k/adr.lock.md <<EOF
+# Lock: docs/adr numbering
+Holder: M1·L — feat/${ISSUE}-l-utility-library
+Reason: adding the deferred-config ADR
+Clears: on this PR's merge
+EOF
+```
+
+- [ ] **Step 2: Compute the next ADR number**
+
+```bash
+LAST=$(ls docs/adr/[0-9]*-*.md 2>/dev/null | sed -E 's#.*/([0-9]+)-.*#\1#' | sort -n | tail -1)
+NEXT=$(printf "%04d" $(( 10#${LAST:-0} + 1 )))
+echo "Next ADR number: $NEXT"
+```
+
+Expected: `0001` when `docs/adr/` holds only `.gitkeep`. If it is **not** `0001` (another ADR landed first), also update the two spec references to `docs/adr/0001-…` in `docs/specs/2026-07-11-steno10k-m1-l-utility-library-design.md` to `${NEXT}` in this same commit.
+
+- [ ] **Step 3: Write the ADR at the computed number**
+
+Create `docs/adr/${NEXT}-defer-llm-and-whisper-config-knobs.md` (substitute the real `${NEXT}` into the heading):
 
 ```markdown
-# 0001 — Defer LLM retry/timeout and Whisper decode knobs to M2
+# <NNNN> — Defer LLM retry/timeout and Whisper decode knobs to M2
 
 Status: Accepted · Date: 2026-07-11 · Milestone: M1·L
 
@@ -1580,12 +1605,14 @@ Net: L adds **zero** fields to F1/F2. No contract-change lock is needed for L.
   and the UI.
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add docs/adr/0001-defer-llm-and-whisper-config-knobs.md
-git commit -m "docs(adr): defer LLM retry and Whisper decode knobs to M2"
+git add "docs/adr/${NEXT}-defer-llm-and-whisper-config-knobs.md"
+git commit -m "docs(adr): defer LLM retry and Whisper decode knobs to M2 (#${ISSUE})"
 ```
+
+Keep the `adr.lock.md` lock **held** — per the protocol it clears on merge (Task 12), so no other agent reuses `${NEXT}` while this PR is open.
 
 ---
 
@@ -1646,20 +1673,28 @@ names, docx render + bundle, prompts, OpenAI-compatible LLM client, transcriber)
 per docs/specs/2026-07-11-steno10k-m1-l-utility-library-design.md.
 
 - Provider-neutral LLM layer (implements \`contracts.llm.LLMClient\`); retry/timeout
-  and Whisper decode knobs deferred to M2 (docs/adr/0001-…).
+  and Whisper decode knobs deferred to M2 (see the deferred-config ADR).
 - Reuses \`contracts.slug\` (no \`filenames.py\` port); import-boundary guarded.
 - Tests: ported (\`plan_chunks\`/\`retry\`/\`markdown_docx\`) + new; ffmpeg/whisper
   paths skip-gated so CI needs no binaries.
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"
 ```
+
+Do **not** add any AI/assistant attribution to the commit or PR (AGENTS.md).
 
 - [ ] **Step 3: Confirm CI is green**
 
 Run: `gh pr checks --watch`
 Expected: all required checks (ruff, mypy, pytest, frontend, container build) pass. Address failures before requesting merge.
+
+- [ ] **Step 4: Release the ADR lock after the PR squash-merges**
+
+Once the PR is merged (`${NEXT}` is now on `main`), clear the shared-numbering lock so other agents can add ADRs:
+
+```bash
+rm -f ~/.claude/locks/steno10k/adr.lock.md
+```
 
 ---
 
