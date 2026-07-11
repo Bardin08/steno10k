@@ -105,3 +105,26 @@ def test_missing_source_is_logged_and_isolated(
     assert good.chunks == ["chunks/g/chunk_000.m4a"]
     assert bad.chunks == []
     assert result.status is StageStatus.OK
+
+
+def test_partial_failure_persists_completed_chunks(
+    make_ctx: MakeCtx, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        chunk_mod, "plan_chunks", lambda *a, **k: [(0.0, 10.0), (10.0, 20.0), (20.0, 30.0)]
+    )
+
+    def flaky_extract(src: Path, dst: Path, start: float, end: float, fmt: str) -> None:
+        if dst.name == "chunk_002.m4a":
+            raise RuntimeError("ffmpeg blew up")
+        _fake_extract(src, dst, start, end, fmt)
+
+    monkeypatch.setattr(chunk_mod, "extract_chunk", flaky_extract)
+    rec = Recording(source_name="rec.m4a", normalized_name="rec.m4a", duration_seconds=30.0)
+    ctx, _ = make_ctx([rec])
+    (ctx.set_dir / "rec.m4a").write_bytes(b"x")
+    result = ChunkStage().run(ctx)
+    assert ctx.errors.count == 1
+    # the two chunks that succeeded are recorded, matching what's on disk
+    assert rec.chunks == ["chunks/rec/chunk_000.m4a", "chunks/rec/chunk_001.m4a"]
+    assert result.status is StageStatus.OK

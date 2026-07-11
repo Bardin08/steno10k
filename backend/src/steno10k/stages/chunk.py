@@ -44,14 +44,13 @@ class ChunkStage:
                 )
                 stem = Path(rec.normalized_name).stem
                 chunk_dir = ctx.set_dir / "chunks" / stem
-                rel_paths: list[str] = []
+                rec.chunks = []
                 for idx, (start, end) in enumerate(windows):
                     dst = chunk_dir / f"chunk_{idx:03d}.{audio.output_format}"
                     if ctx.force or not dst.exists():
                         extract_chunk(src, dst, start, end, audio.output_format)
-                    rel_paths.append(str(dst.relative_to(ctx.set_dir)))
+                    rec.chunks.append(str(dst.relative_to(ctx.set_dir)))
                     chunk_total += 1
-                rec.chunks = rel_paths
             except Exception as exc:  # per-recording isolation
                 ctx.errors.log("chunk", rec.normalized_name, exc)
             ctx.events.emit(
