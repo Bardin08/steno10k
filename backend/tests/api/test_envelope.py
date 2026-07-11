@@ -46,3 +46,20 @@ def test_validation_error_is_enveloped() -> None:
     r = TestClient(app).get("/typed?n=abc")
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "validation_error"
+
+
+def test_unexpected_error_is_enveloped() -> None:
+    app = FastAPI()
+    install_error_handlers(app)
+
+    @app.get("/boom")
+    def boom() -> dict[str, object]:
+        raise RuntimeError("kaboom")
+
+    # raise_server_exceptions=False so the catch-all handler's JSON response is
+    # returned instead of the exception propagating into the test.
+    r = TestClient(app, raise_server_exceptions=False).get("/boom")
+    assert r.status_code == 500
+    body = r.json()
+    assert body["data"] is None
+    assert body["error"]["code"] == "internal_error"
