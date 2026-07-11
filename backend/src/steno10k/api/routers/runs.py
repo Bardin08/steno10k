@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from steno10k.api.deps import get_run_queue
 from steno10k.api.dto import RunDTO
 from steno10k.api.envelope import ApiError, ok
-from steno10k.api.runq import RunQueue
+from steno10k.api.runq import RunQueue, RunStatus
 from steno10k.api.sse import sse_stream
 from steno10k.contracts.events import Event
 
@@ -77,4 +77,18 @@ def stream_events(
     def _history() -> list[Event]:
         return run_queue.get(run_id).events
 
-    return StreamingResponse(sse_stream(bus, history=_history), media_type="text/event-stream")
+    # Backstop against the lock-ordering race documented in `sse_stream`'s
+    # docstring: even if the `run_completed` event is never observed by this
+    # bridge, the run's own recorded status is the source of truth for
+    # whether it has finished, and lets the stream close deterministically.
+    def _is_terminal() -> bool:
+        return run_queue.get(run_id).status in {
+            RunStatus.COMPLETED,
+            RunStatus.FAILED,
+            RunStatus.CANCELLED,
+        }
+
+    return StreamingResponse(
+        sse_stream(bus, history=_history, is_terminal=_is_terminal),
+        media_type="text/event-stream",
+    )

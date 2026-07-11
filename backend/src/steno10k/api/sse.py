@@ -26,7 +26,9 @@ def _format_event(event: Event) -> str:
 
 
 async def sse_stream(
-    bus: EventBus, history: Callable[[], list[Event]] | None = None
+    bus: EventBus,
+    history: Callable[[], list[Event]] | None = None,
+    is_terminal: Callable[[], bool] | None = None,
 ) -> AsyncIterator[str]:
     """Bridge a run's (sync) `EventBus` to an async SSE stream.
 
@@ -53,6 +55,18 @@ async def sse_stream(
     queue) is deduplicated by object identity (`id()`), since every
     subscriber -- including `RunQueue`'s own history recorder -- receives
     the exact same `Event` instance from `EventBus.emit`.
+
+    `is_terminal`, if given, is a backstop against a narrow lock-ordering
+    race between `EventBus.emit` and `RunQueue._record_event`: in theory the
+    two locks could interleave such that the `run_completed` event is
+    recorded in history but the live queue push (or vice versa) is missed by
+    this bridge, leaving the terminal event forever unseen and the poll loop
+    below spinning forever (bounded per-iteration by `_POLL_TIMEOUT_SECONDS`,
+    but with no overall deadline). When the queue poll times out, we ask
+    `is_terminal()` whether the run itself has already reached a terminal
+    status independent of the event stream; if so we drain whatever is left
+    in the queue (non-blocking) and close the stream even though we never
+    observed a `run_completed` event.
     """
     q: queue.Queue[Event] = queue.Queue()
     bus.subscribe(q.put)
@@ -70,6 +84,17 @@ async def sse_stream(
         try:
             event = await asyncio.to_thread(q.get, timeout=_POLL_TIMEOUT_SECONDS)
         except queue.Empty:
+            if is_terminal is not None and is_terminal():
+                while True:
+                    try:
+                        event = q.get_nowait()
+                    except queue.Empty:
+                        break
+                    if id(event) in seen:
+                        continue
+                    seen.add(id(event))
+                    yield _format_event(event)
+                return
             continue
 
         if id(event) in seen:
