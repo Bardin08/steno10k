@@ -9,7 +9,8 @@
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "gen:api": "openapi-typescript ../openapi.json -o src/api/schema.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.9",
@@ -36,6 +37,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.15.0",
     "jsdom": "^25.0.1",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.4.1",
     "tailwindcss": "^4.3.2",
     "typescript": "^5.7.2",
