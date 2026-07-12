@@ -315,23 +315,26 @@ export function Sidebar() {
         >
           <ArrowLineRight size={14} />
         </button>
-        {projects?.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            aria-label={`Open ${p.title}`}
-            onClick={() => {
-              if (p.sets.length > 0) {
-                navigate(`/p/${p.slug}/s/${p.sets[0].slug}`);
-              } else {
-                setRailedPersisted(false);
-              }
-            }}
-            className="grid h-8 w-8 place-items-center rounded-sm text-ink-soft hover:text-ink"
-          >
-            <ProjectIcon icon={p.icon} />
-          </button>
-        ))}
+        {projects?.map((p) => {
+          const isActive = params.project === p.slug;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              aria-label={`Open ${p.title}`}
+              onClick={() => {
+                if (p.sets.length > 0) {
+                  navigate(`/p/${p.slug}/s/${p.sets[0].slug}`);
+                } else {
+                  setRailedPersisted(false);
+                }
+              }}
+              className={`grid h-8 w-8 place-items-center rounded-sm border-l-2 ${isActive ? "border-accent bg-accent-wash text-accent-ink" : "border-transparent text-ink-soft hover:text-ink"}`}
+            >
+              <ProjectIcon icon={p.icon} />
+            </button>
+          );
+        })}
       </nav>
     );
   }
@@ -450,7 +453,7 @@ export function Sidebar() {
                         <NavLink
                           to={`/p/${p.slug}/s/${s.slug}`}
                           className={({ isActive }) =>
-                            `block flex-1 truncate rounded-sm px-2 py-1 text-[13px] ${isActive ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"}`
+                            `block flex-1 truncate rounded-sm border-l-2 px-2 py-1 text-[13px] ${isActive ? "border-accent bg-accent-wash text-accent-ink" : "border-transparent text-ink-soft hover:text-ink"}`
                           }
                         >
                           {s.title}
