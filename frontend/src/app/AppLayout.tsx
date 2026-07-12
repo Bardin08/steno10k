@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router";
 import { Sidebar } from "./Sidebar";
+import { ThemeToggle } from "../theme/ThemeToggle";
 
 const topLink = ({ isActive }: { isActive: boolean }) =>
   `font-mono text-[11px] uppercase tracking-[0.14em] ${isActive ? "text-ink" : "text-ink-faint hover:text-ink"}`;
@@ -23,6 +24,9 @@ export function AppLayout() {
               Config
             </NavLink>
           </nav>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </header>
         <main className="mx-auto w-full max-w-[var(--maxw)] px-8 py-12">
           <Outlet />
