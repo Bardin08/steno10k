@@ -41,9 +41,7 @@ def estimate_need_gb(model: str, max_workers: int) -> float | None:
     return per * max(max_workers, 1) + _OVERHEAD_GB
 
 
-def read_cgroup_limit_bytes(
-    v2_path: Path = _CGROUP_V2, v1_path: Path = _CGROUP_V1
-) -> int | None:
+def read_cgroup_limit_bytes(v2_path: Path = _CGROUP_V2, v1_path: Path = _CGROUP_V1) -> int | None:
     """The container's memory limit in bytes, or None when unknown/unlimited.
 
     Best-effort: on Docker Desktop this reflects the VM, not a per-container

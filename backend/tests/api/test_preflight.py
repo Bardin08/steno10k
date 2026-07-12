@@ -33,9 +33,7 @@ def test_read_cgroup_unlimited_is_none(tmp_path: Path) -> None:
 
 
 def test_read_cgroup_absent_is_none(tmp_path: Path) -> None:
-    assert (
-        read_cgroup_limit_bytes(v2_path=tmp_path / "a", v1_path=tmp_path / "b") is None
-    )
+    assert read_cgroup_limit_bytes(v2_path=tmp_path / "a", v1_path=tmp_path / "b") is None
 
 
 def test_memory_warning_fires_when_over() -> None:
