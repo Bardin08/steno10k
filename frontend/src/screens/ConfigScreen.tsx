@@ -152,10 +152,10 @@ export function ConfigScreen() {
                   type="button"
                   aria-current={section === s.key}
                   onClick={() => setSection(s.key)}
-                  className={`block whitespace-nowrap rounded-sm px-3 py-1.5 text-left text-sm font-medium transition-colors duration-[var(--dur-micro)] ease-editorial ${
+                  className={`box-border block whitespace-nowrap rounded-sm border-l-2 px-3 py-1.5 pl-[10px] text-left text-sm font-medium transition-colors duration-[var(--dur-micro)] ease-editorial ${
                     section === s.key
-                      ? "bg-ink text-paper"
-                      : "text-ink-soft hover:text-ink"
+                      ? "border-accent bg-accent-wash text-accent-ink"
+                      : "border-transparent text-ink-soft hover:text-ink"
                   }`}
                 >
                   {s.label}
