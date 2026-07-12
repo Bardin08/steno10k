@@ -15,7 +15,7 @@ const base =
   "disabled:opacity-50 disabled:pointer-events-none";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-ink text-paper border-transparent hover:bg-black",
+  primary: "bg-ink text-paper border-transparent hover:opacity-90",
   ghost: "bg-transparent text-ink border-hairline-strong hover:border-ink",
 };
 
