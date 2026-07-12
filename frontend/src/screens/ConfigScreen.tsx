@@ -19,10 +19,17 @@ import {
 } from "../app/llmProviders";
 import { resolveEnabledStages } from "../app/stageDeps";
 
-// Only require an http(s):// prefix — not a fully well-formed URL — so local /
-// custom endpoints that don't parse as canonical URLs are still accepted.
+// Require a syntactically valid http(s):// URL with a host and no whitespace —
+// enough to reject non-links like "https://p1 p1 ska", but we do NOT verify the
+// endpoint is reachable or otherwise "correct".
 function isValidHttpUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value.trim());
+  const v = value.trim();
+  if (!/^https?:\/\//i.test(v) || /\s/.test(v)) return false;
+  try {
+    return Boolean(new URL(v).hostname);
+  } catch {
+    return false;
+  }
 }
 
 type Cfg = Record<string, Record<string, unknown>>;
@@ -107,7 +114,7 @@ export function ConfigScreen() {
       : undefined;
   const providerUrlError =
     trimmedProviderUrl !== "" && !isValidHttpUrl(trimmedProviderUrl)
-      ? "Must start with http:// or https://."
+      ? "Enter a valid http(s):// URL."
       : undefined;
   const providerFormValid =
     trimmedProviderName !== "" &&
