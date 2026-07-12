@@ -27,11 +27,10 @@ class EnqueueRunRequest(BaseModel):
 def create_run(
     body: EnqueueRunRequest, run_queue: Annotated[RunQueue, Depends(get_run_queue)]
 ) -> dict[str, Any]:
-    # `stage_overrides`/`force` are accepted per the API contract but not yet
-    # threaded through to `RunQueue.enqueue` (Task 9, frozen): F2 ships with an
-    # empty `StageRegistry`, so there are no concrete stages for per-stage
-    # overrides to apply to. Wiring belongs with the fan-out that adds stages.
-    run = run_queue.enqueue(project=body.project, set_=body.set)
+    # `force` is threaded through; `stage_overrides` is accepted on the request
+    # for forward-compatibility but intentionally NOT applied per-run yet — each
+    # run uses config-level `stages.enabled`. See docs/adr/0001-deferred-run-options.md.
+    run = run_queue.enqueue(project=body.project, set_=body.set, force=body.force)
     return ok(RunDTO.from_domain(run).model_dump())
 
 
