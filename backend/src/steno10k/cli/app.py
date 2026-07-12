@@ -20,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="steno10k", description="steno10k terminal driver")
     sub = parser.add_subparsers(dest="command", required=True)
     commands.add_projects(sub)
+    commands.add_sets(sub)
     return parser
 
 

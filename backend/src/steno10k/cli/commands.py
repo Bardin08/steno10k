@@ -65,6 +65,60 @@ def cmd_projects_delete(args: argparse.Namespace, deps: Deps) -> int:
     return ExitCode.OK
 
 
+# -- sets --------------------------------------------------------------------
+
+
+def add_sets(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    p = sub.add_parser("sets", help="manage recording sets")
+    ssub = p.add_subparsers(dest="sets_cmd", required=True)
+
+    lst = ssub.add_parser("list", parents=[common_parser()], help="list sets in a project")
+    lst.add_argument("project")
+    lst.set_defaults(func=cmd_sets_list)
+
+    cr = ssub.add_parser("create", parents=[common_parser()], help="create a set")
+    cr.add_argument("project")
+    cr.add_argument("title")
+    cr.set_defaults(func=cmd_sets_create)
+
+    dl = ssub.add_parser("delete", parents=[common_parser()], help="delete a set")
+    dl.add_argument("project")
+    dl.add_argument("set_", metavar="SET")
+    dl.add_argument("-y", "--yes", action="store_true", help="skip confirmation")
+    dl.set_defaults(func=cmd_sets_delete)
+
+
+def cmd_sets_list(args: argparse.Namespace, deps: Deps) -> int:
+    try:
+        deps.storage.get_project(args.project)
+    except NotFound as exc:
+        print(str(exc), file=__import__("sys").stderr)
+        return ExitCode.USAGE
+    output.emit_sets(deps.storage.list_sets(args.project), as_json=deps.json)
+    return ExitCode.OK
+
+
+def cmd_sets_create(args: argparse.Namespace, deps: Deps) -> int:
+    try:
+        s = deps.storage.create_set(args.project, args.title)
+    except NotFound as exc:
+        print(str(exc), file=__import__("sys").stderr)
+        return ExitCode.USAGE
+    output.emit_set(s, as_json=deps.json)
+    return ExitCode.OK
+
+
+def cmd_sets_delete(args: argparse.Namespace, deps: Deps) -> int:
+    if not confirm(args.yes, f"Delete set {args.project}/{args.set_!r} and all its data?"):
+        return ExitCode.OK
+    try:
+        deps.storage.delete_set(args.project, args.set_)
+    except NotFound as exc:
+        print(str(exc), file=__import__("sys").stderr)
+        return ExitCode.USAGE
+    return ExitCode.OK
+
+
 # -- shared ------------------------------------------------------------------
 
 
