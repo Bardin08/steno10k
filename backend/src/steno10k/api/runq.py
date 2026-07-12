@@ -10,15 +10,13 @@ from typing import Any
 
 from steno10k.api.configsvc import ConfigService
 from steno10k.api.storage import Storage
-from steno10k.contracts.config import Config
 from steno10k.contracts.errors import ErrorLog
 from steno10k.contracts.events import Event, EventBus
 from steno10k.contracts.ids import new_id
-from steno10k.contracts.llm import LLMClient
 from steno10k.contracts.registry import StageRegistry
 from steno10k.contracts.runner import run_set
 from steno10k.contracts.stage import RunOptions, StageContext
-from steno10k.lib.llm import OpenAICompatibleClient
+from steno10k.lib.llm import make_llm
 
 log = logging.getLogger("steno10k.runq")
 
@@ -49,22 +47,6 @@ class Run:
     force: bool = False
     stats: dict[str, Any] = field(default_factory=dict)
     events: list[Event] = field(default_factory=list)
-
-
-def _make_llm(cfg: Config) -> LLMClient | None:
-    """Resolve an LLM client from config, or None when unavailable.
-
-    Returns None when the LLM is disabled or its API key env var is unset —
-    the LLM stages guard on `ctx.llm is None` and self-skip, so a missing key
-    degrades to a transcript-only run instead of failing it.
-    """
-    if not cfg.llm.enabled:
-        return None
-    try:
-        return OpenAICompatibleClient(cfg.llm)
-    except RuntimeError as exc:  # missing API key
-        log.warning("LLM client unavailable, LLM stages will skip: %s", exc)
-        return None
 
 
 class RunQueue:
@@ -215,7 +197,7 @@ class RunQueue:
                 manifest=manifest,
                 errors=errors,
                 events=bus,
-                llm=_make_llm(cfg),
+                llm=make_llm(cfg),
             )
             run_set(self._registry, ctx, RunOptions(force=run.force))
             manifest.save(self._storage.manifest_path(run.project, run.set_))

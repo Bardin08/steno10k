@@ -7,7 +7,8 @@ import time as time
 import httpx
 from openai import APIStatusError, OpenAI, OpenAIError, RateLimitError
 
-from steno10k.contracts.config import LLMConfig
+from steno10k.contracts.config import Config, LLMConfig
+from steno10k.contracts.llm import LLMClient
 from steno10k.lib.retry import compute_backoff_wait, extract_retry_after_seconds
 
 log = logging.getLogger("steno10k.llm")
@@ -82,3 +83,19 @@ class OpenAICompatibleClient:
                 )
                 time.sleep(self._compute_wait(attempt, e))
         raise RuntimeError(f"LLM call failed after {_MAX_RETRIES} attempts: {last_err}")
+
+
+def make_llm(cfg: Config) -> LLMClient | None:
+    """Resolve an LLM client from config, or None when unavailable.
+
+    Returns None when the LLM is disabled or its API key env var is unset — the
+    LLM stages guard on `ctx.llm is None` and self-skip, so a missing key
+    degrades to a transcript-only run instead of failing it.
+    """
+    if not cfg.llm.enabled:
+        return None
+    try:
+        return OpenAICompatibleClient(cfg.llm)
+    except RuntimeError as exc:  # missing API key
+        log.warning("LLM client unavailable, LLM stages will skip: %s", exc)
+        return None
