@@ -6,7 +6,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, UploadFile
 
 from steno10k.api.deps import get_storage
-from steno10k.api.dto import RecordingDTO
+from steno10k.api.dto import Envelope, RecordingDTO
 from steno10k.api.envelope import ApiError, ok
 from steno10k.api.storage import NotFound, Storage
 from steno10k.contracts.domain import Recording
@@ -68,7 +68,7 @@ async def _write_capped(upload: UploadFile, dest: Path) -> int:
     return total
 
 
-@router.post("")
+@router.post("", response_model=Envelope[list[RecordingDTO]])
 async def upload_recordings(
     project: str,
     set_: str,
@@ -110,7 +110,7 @@ async def upload_recordings(
     return ok([RecordingDTO.from_domain(r).model_dump() for r in recordings])
 
 
-@router.get("")
+@router.get("", response_model=Envelope[list[RecordingDTO]])
 def list_recordings(
     project: str, set_: str, storage: Annotated[Storage, Depends(get_storage)]
 ) -> dict[str, Any]:
@@ -121,7 +121,7 @@ def list_recordings(
     return ok([RecordingDTO.from_domain(r).model_dump() for r in recording_set.recordings])
 
 
-@router.delete("/{recording}")
+@router.delete("/{recording}", response_model=Envelope[None])
 def delete_recording(
     project: str,
     set_: str,

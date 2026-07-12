@@ -5,14 +5,14 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends
 
 from steno10k.api.deps import get_storage
-from steno10k.api.dto import CreateTitle, SetDTO
+from steno10k.api.dto import CreateTitle, Envelope, SetDTO
 from steno10k.api.envelope import ApiError, ok
 from steno10k.api.storage import NotFound, Storage
 
 router = APIRouter(prefix="/api/v1/projects/{project}/sets", tags=["sets"])
 
 
-@router.post("")
+@router.post("", response_model=Envelope[SetDTO])
 def create_set(
     project: str, body: CreateTitle, storage: Annotated[Storage, Depends(get_storage)]
 ) -> dict[str, Any]:
@@ -23,13 +23,13 @@ def create_set(
     return ok(SetDTO.from_domain(recording_set).model_dump())
 
 
-@router.get("")
+@router.get("", response_model=Envelope[list[SetDTO]])
 def list_sets(project: str, storage: Annotated[Storage, Depends(get_storage)]) -> dict[str, Any]:
     sets = storage.list_sets(project)
     return ok([SetDTO.from_domain(s).model_dump() for s in sets])
 
 
-@router.get("/{set_}")
+@router.get("/{set_}", response_model=Envelope[SetDTO])
 def get_set(
     project: str, set_: str, storage: Annotated[Storage, Depends(get_storage)]
 ) -> dict[str, Any]:
@@ -40,7 +40,7 @@ def get_set(
     return ok(SetDTO.from_domain(recording_set).model_dump())
 
 
-@router.delete("/{set_}")
+@router.delete("/{set_}", response_model=Envelope[None])
 def delete_set(
     project: str, set_: str, storage: Annotated[Storage, Depends(get_storage)]
 ) -> dict[str, Any]:

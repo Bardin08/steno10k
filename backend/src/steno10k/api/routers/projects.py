@@ -5,14 +5,14 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends
 
 from steno10k.api.deps import get_storage
-from steno10k.api.dto import CreateProject, ProjectDTO
+from steno10k.api.dto import CreateProject, Envelope, ProjectDTO
 from steno10k.api.envelope import ApiError, ok
 from steno10k.api.storage import NotFound, Storage
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
 
-@router.post("")
+@router.post("", response_model=Envelope[ProjectDTO])
 def create_project(
     body: CreateProject, storage: Annotated[Storage, Depends(get_storage)]
 ) -> dict[str, Any]:
@@ -20,13 +20,13 @@ def create_project(
     return ok(ProjectDTO.from_domain(project).model_dump())
 
 
-@router.get("")
+@router.get("", response_model=Envelope[list[ProjectDTO]])
 def list_projects(storage: Annotated[Storage, Depends(get_storage)]) -> dict[str, Any]:
     projects = storage.list_projects()
     return ok([ProjectDTO.from_domain(p).model_dump() for p in projects])
 
 
-@router.get("/{project}")
+@router.get("/{project}", response_model=Envelope[ProjectDTO])
 def get_project(project: str, storage: Annotated[Storage, Depends(get_storage)]) -> dict[str, Any]:
     try:
         found = storage.get_project(project)
@@ -35,7 +35,7 @@ def get_project(project: str, storage: Annotated[Storage, Depends(get_storage)])
     return ok(ProjectDTO.from_domain(found).model_dump())
 
 
-@router.delete("/{project}")
+@router.delete("/{project}", response_model=Envelope[None])
 def delete_project(
     project: str, storage: Annotated[Storage, Depends(get_storage)]
 ) -> dict[str, Any]:

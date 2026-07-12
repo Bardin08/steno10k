@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 
 from steno10k.api.deps import get_storage
+from steno10k.api.dto import Envelope
 from steno10k.api.envelope import ApiError, ok
 from steno10k.api.storage import Storage
 
@@ -68,7 +69,7 @@ def _get_set_dir(storage: Storage, project: str, set_: str) -> Path:
     return set_dir
 
 
-@router.get("")
+@router.get("", response_model=Envelope[list[ArtifactDTO]])
 def list_artifacts(
     project: str, set_: str, storage: Annotated[Storage, Depends(get_storage)]
 ) -> dict[str, Any]:
