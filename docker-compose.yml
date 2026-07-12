@@ -5,6 +5,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # holds recordings, artifacts, config.yaml, AND the whisper model cache
       - steno10k-data:/data
     environment:
       STENO10K_DATA_ROOT: /data

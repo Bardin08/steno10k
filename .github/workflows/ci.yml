@@ -83,8 +83,12 @@ jobs:
         with:
           context: .
           push: false
+          load: true
+          tags: steno10k:smoke
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: e2e smoke
+        run: SKIP_BUILD=1 IMAGE=steno10k:smoke ./scripts/smoke.sh
 
   publish:
     needs: [backend, frontend, docker]

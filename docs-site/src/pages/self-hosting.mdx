@@ -1,0 +1,79 @@
+---
+layout: ../layouts/DocsLayout.astro
+title: Self-hosting
+---
+
+# Self-hosting
+
+steno10k ships as a single container that serves both the API and the web UI,
+backed by one mounted volume. Everything — recordings, artifacts, `config.yaml`,
+and the downloaded Whisper model — lives under that volume.
+
+## Quick start
+
+```bash
+docker compose up
+```
+
+Then open [http://localhost:8000](http://localhost:8000). Or run the published image directly:
+
+```bash
+docker run --rm -p 8000:8000 -v steno10k-data:/data \
+  ghcr.io/bardin08/steno10k:latest
+```
+
+## Secrets
+
+The transcription stage runs locally; only the clean/summarize stages call an
+LLM, and only if you configure one. Provide the key via the environment — never
+in `config.yaml`:
+
+```bash
+# .env  (loaded by docker compose)
+OPENAI_API_KEY=sk-...
+```
+
+## First run downloads the model
+
+On the **first transcription**, faster-whisper downloads the configured Whisper
+model into the volume (`/data/.cache/huggingface`). This can take a few minutes
+and streams progress to the container logs — **it is not stuck**. Subsequent runs
+reuse the cached model, so only the first run pays this cost.
+
+## Hardware & memory
+
+Only Whisper transcription is resource-heavy; the LLM stages are remote API calls
+and the app itself is light. The single knob that sets your hardware floor is the
+Whisper model size — and, critically, **each transcription worker loads its own
+copy of the model**, so total RAM scales with `transcription.max_workers`.
+
+| Model | Disk | RAM **per worker** (int8/CPU) | Quality | Speed (~realtime) |
+| --- | --- | --- | --- | --- |
+| tiny | ~75 MB | ~0.5–1 GB | rough | ~10–30× |
+| base | ~145 MB | ~1 GB | decent | ~7–15× |
+| small (default) | ~490 MB | ~1.5–2 GB | good | ~4–6× |
+| medium | ~1.5 GB | ~2.5–4 GB | very good | ~1.5–2× |
+| large-v3 | ~3 GB | ~4–6 GB | best | ~0.5–1× |
+
+> **Total RAM ≈ per-worker footprint × `max_workers`.** The shipped default is
+> `small × 2` (~3.5 GB peak). Bumping to `large-v3 × 4` needs ~16–20 GB and will
+> be OOM-killed on a default Docker Desktop — which looks like a silent stall.
+> steno10k logs a non-blocking warning (and shows it on the run) when your config
+> likely exceeds available memory.
+
+### Docker Desktop memory
+
+Docker Desktop runs containers inside a VM with its own memory ceiling:
+
+- **macOS:** defaults to ~8 GB on a 16 GB machine (min floor ~4 GB). Raise it in
+  **Settings → Resources**, then Apply & Restart.
+- **Windows (WSL 2):** defaults to up to 50% of host RAM; cap or raise it via
+  `%UserProfile%\.wslconfig` (`[wsl2]` → `memory=8GB`), then `wsl --shutdown`.
+
+Leave at least 4 GB and 2 cores for the host OS.
+
+### Apple Silicon
+
+CTranslate2 (the Whisper backend) is **CPU-only on Apple Silicon** — there is no
+Metal/MPS acceleration (GPU acceleration is CUDA-only). Transcription runs on the
+CPU on Macs; pick a smaller model if throughput matters.

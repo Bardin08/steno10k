@@ -7,6 +7,9 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import Response
+from starlette.types import Scope
 
 from steno10k.api.configsvc import ConfigService
 from steno10k.api.envelope import install_error_handlers, ok
@@ -25,7 +28,25 @@ from steno10k.api.stages import build_registry
 from steno10k.api.storage import Storage
 
 
-def create_app(data_root: Path) -> FastAPI:
+class SPAStaticFiles(StaticFiles):
+    """Serve built SPA assets, falling back to index.html for client-side routes.
+
+    react-router uses HTML5 history routing, so a hard refresh on a deep link
+    like /p/x/s/y hits the server for a path that has no file. Starlette's
+    StaticFiles 404s on that; we instead return index.html so the SPA boots and
+    resolves the route on the client.
+    """
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404 and not path.startswith("api/"):
+                return await super().get_response("index.html", scope)
+            raise
+
+
+def create_app(data_root: Path, static_dir: Path | None = None) -> FastAPI:
     @asynccontextmanager
     async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.run_queue.start()
@@ -58,10 +79,10 @@ def create_app(data_root: Path) -> FastAPI:
     app.include_router(runs.router)
     app.include_router(system.router)
 
-    # Built SPA served at "/" in the container; absent during local tests.
-    _static = Path(__file__).parent.parent / "static"
+    # Built SPA served at "/" in the container; absent during most unit tests.
+    _static = static_dir if static_dir is not None else Path(__file__).parent.parent / "static"
     if _static.is_dir():
-        app.mount("/", StaticFiles(directory=_static, html=True), name="spa")
+        app.mount("/", SPAStaticFiles(directory=_static, html=True), name="spa")
 
     return app
 

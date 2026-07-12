@@ -8,4 +8,5 @@ export const nav: NavItem[] = [
   { title: "Getting started", slug: "getting-started" },
   { title: "Configuration", slug: "configuration" },
   { title: "CLI", slug: "cli" },
+  { title: "Self-hosting", slug: "self-hosting" },
 ];

@@ -22,6 +22,11 @@ dependent stages cascade automatically.
 | 07 | bundle | local | Render transcript + summary to `.docx`. |
 | 08 | notify | local | Push results to Telegram — off by default. |
 
+Transcription runs multiple workers in parallel; each loads its own copy of the
+Whisper model, so total RAM ≈ per-worker footprint × `max_workers`. The default
+is `small × 2`. See [Self-hosting](/steno10k/docs/self-hosting/#hardware--memory) before raising
+either knob.
+
 ## Choosing a Whisper model
 
 Only transcription is heavy — the LLM stages are remote calls. Pick the Whisper

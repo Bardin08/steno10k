@@ -9,6 +9,7 @@ from enum import StrEnum
 from typing import Any
 
 from steno10k.api.configsvc import ConfigService
+from steno10k.api.preflight import memory_warning
 from steno10k.api.storage import Storage
 from steno10k.contracts.errors import ErrorLog
 from steno10k.contracts.events import Event, EventBus
@@ -107,6 +108,10 @@ class RunQueue:
             position=self._queue.qsize(),
             force=force,
         )
+        warning = memory_warning(self._config_service.load())
+        if warning is not None:
+            log.warning("run %s: %s", run.id, warning)
+            run.stats["warnings"] = [warning]
         bus = EventBus()
         bus.subscribe(functools.partial(self._record_event, run.id))
         with self._lock:
