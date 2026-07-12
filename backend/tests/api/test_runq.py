@@ -229,3 +229,35 @@ def test_enqueue_records_force_true(tmp_path: Path) -> None:
     run = q.enqueue(project="law", set_="week-1", force=True)
     assert run.force is True
     assert q.get(run.id).force is True  # survives _snapshot round-trip
+
+
+@dataclass
+class _ForceRecordingStage:
+    """Records the `ctx.force` value seen at run time so a test can assert
+    the queue threaded the per-run force flag into the StageContext."""
+
+    seen: list[bool] = field(default_factory=list)
+    name: StageName = StageName.NORMALIZE
+    depends_on: list[StageName] = field(default_factory=list)
+
+    def enabled(self, cfg: Config, opts: RunOptions) -> bool:
+        return True
+
+    def run(self, ctx: StageContext) -> StageResult:
+        self.seen.append(ctx.force)
+        return StageResult(status=StageStatus.OK)
+
+
+def test_force_threads_into_stage_context(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    storage.create_project("Law")
+    storage.create_set("law", "Week 1")
+    stage = _ForceRecordingStage()
+    q = RunQueue(storage=storage, registry=StageRegistry([stage]))
+    q.start()
+    try:
+        run = q.enqueue(project="law", set_="week-1", force=True)
+        _wait(lambda: q.get(run.id).status == RunStatus.COMPLETED)
+        assert stage.seen == [True]
+    finally:
+        q.stop()

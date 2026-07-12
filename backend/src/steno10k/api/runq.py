@@ -192,13 +192,13 @@ class RunQueue:
             ctx = StageContext(
                 set_dir=set_dir,
                 cfg=cfg,
-                force=False,
+                force=run.force,
                 manifest=manifest,
                 errors=errors,
                 events=bus,
                 llm=None,
             )
-            run_set(self._registry, ctx, RunOptions())
+            run_set(self._registry, ctx, RunOptions(force=run.force))
             manifest.save(self._storage.manifest_path(run.project, run.set_))
         except Exception as exc:  # isolation boundary: one bad run must not kill the worker
             log.exception("run %s failed", run_id)
