@@ -20,3 +20,17 @@ test("shows the active tab's panel and switches on click", () => {
   fireEvent.mouseDown(screen.getByRole("tab", { name: "Summary" }));
   expect(screen.getByText("summary body")).toBeInTheDocument();
 });
+
+test("trigger has no focus ring class", () => {
+  render(
+    <Tabs defaultValue="a">
+      <TabsList>
+        <TabsTrigger value="a">A</TabsTrigger>
+      </TabsList>
+      <TabsContent value="a">b</TabsContent>
+    </Tabs>,
+  );
+  const t = screen.getByRole("tab", { name: "A" });
+  expect(t.className).not.toMatch(/ring-2/);
+  expect(t.className).not.toMatch(/ring-accent/);
+});
