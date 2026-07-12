@@ -81,3 +81,24 @@ test("no-op when runId is null", () => {
   renderHook(() => useRunEvents(null), { wrapper });
   expect(FakeEventSource.instances.length).toBe(0);
 });
+
+test("resets log and stage statuses when runId changes (re-run)", () => {
+  installFakeEventSource();
+  const { result, rerender } = renderHook(
+    ({ id }: { id: string }) => useRunEvents(id),
+    { wrapper, initialProps: { id: "run-1" } },
+  );
+
+  const es1 = FakeEventSource.instances[0];
+  act(() => es1.emit("run_started", {}));
+  act(() => es1.emit("stage_completed", { stage: "normalize" }));
+  expect(result.current.stages.normalize.status).toBe("done");
+  expect(result.current.log.length).toBeGreaterThan(0);
+
+  // A re-run gets a new runId — the previous run's log + stage statuses clear.
+  rerender({ id: "run-2" });
+  expect(result.current.log).toEqual([]);
+  expect(result.current.stages.normalize.status).toBe("queued");
+  expect(result.current.status).toBe("queued");
+  expect(FakeEventSource.instances.length).toBe(2);
+});

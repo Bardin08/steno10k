@@ -1,14 +1,151 @@
-import { useState } from "react";
-import { NavLink } from "react-router";
-import { FolderSimple, Plus } from "@phosphor-icons/react";
-import { Button, EmptyState, Skeleton } from "../components";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
+import { NavLink, useNavigate, useParams } from "react-router";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import {
+  ArrowLineLeft,
+  ArrowLineRight,
+  CaretDown,
+  CaretRight,
+  DotsThree,
+  FolderSimple,
+  Plus,
+} from "@phosphor-icons/react";
+import { Button, EmptyState, Input, Modal, Skeleton } from "../components";
 import { toast } from "../components";
-import { useCreateProject, useCreateSet, useProjects } from "../api/hooks";
+import type { ProjectDTO, SetDTO } from "../api/types";
+import {
+  useCreateProject,
+  useCreateSet,
+  useDeleteProject,
+  useDeleteSet,
+  useProjects,
+} from "../api/hooks";
 import { ApiError } from "../api/client";
 import { CreateDialog } from "./CreateDialog";
+import { ProjectIcon } from "./projectIcons";
+
+const COLLAPSED_KEY = "steno10k.sidebar.collapsed";
+const RAILED_KEY = "steno10k.sidebar.railed";
+const WIDTH_KEY = "steno10k.sidebar.width";
+const DEFAULT_WIDTH = 248;
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 420;
+const RAIL_WIDTH = 52;
+
+function clampWidth(n: number) {
+  return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, n));
+}
+
+function readWidth(): number {
+  const raw = Number(localStorage.getItem(WIDTH_KEY));
+  return clampWidth(Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_WIDTH);
+}
 
 function reportError(e: unknown) {
   toast.error(e instanceof ApiError ? e.message : "Something went wrong");
+}
+
+function readCollapsed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(Array.isArray(arr) ? (arr as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeCollapsed(collapsed: Set<string>) {
+  localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
+}
+
+interface FilteredProject {
+  project: ProjectDTO;
+  sets: SetDTO[];
+  forceExpand: boolean;
+}
+
+function filterProjects(
+  projects: ProjectDTO[] | undefined,
+  query: string,
+): FilteredProject[] {
+  const q = query.trim().toLowerCase();
+  if (!projects) return [];
+  if (!q) {
+    return projects.map((p) => ({
+      project: p,
+      sets: p.sets,
+      forceExpand: false,
+    }));
+  }
+  const result: FilteredProject[] = [];
+  for (const p of projects) {
+    const titleMatch = p.title.toLowerCase().includes(q);
+    const matchingSets = p.sets.filter((s) =>
+      s.title.toLowerCase().includes(q),
+    );
+    if (titleMatch) {
+      result.push({ project: p, sets: p.sets, forceExpand: true });
+    } else if (matchingSets.length > 0) {
+      result.push({ project: p, sets: matchingSets, forceExpand: true });
+    }
+  }
+  return result;
+}
+
+type PendingDelete =
+  | { kind: "project"; project: ProjectDTO }
+  | { kind: "set"; project: ProjectDTO; set: SetDTO }
+  | null;
+
+function RowMenu({
+  triggerLabel,
+  deleteLabel,
+  onDelete,
+}: {
+  triggerLabel: string;
+  deleteLabel: string;
+  onDelete: () => void;
+}) {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          aria-label={triggerLabel}
+          className="grid h-6 w-6 place-items-center rounded-sm text-ink-faint opacity-0 transition-opacity duration-[var(--dur-micro)] ease-editorial group-hover:opacity-100 focus-visible:opacity-100 hover:text-ink"
+        >
+          <DotsThree size={14} weight="bold" />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={4}
+          className="z-50 min-w-[160px] rounded-sm border border-hairline bg-surface p-1 shadow-[var(--shadow-soft)] [animation:modal-pop_var(--dur)_var(--ease-editorial)]"
+        >
+          <DropdownMenu.Item
+            disabled
+            className="rounded-sm px-2 py-1.5 text-[13px] text-ink-faint outline-none data-[disabled]:cursor-not-allowed"
+          >
+            Rename…
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            onSelect={onDelete}
+            className="cursor-pointer rounded-sm px-2 py-1.5 text-[13px] text-ink outline-none hover:bg-sink focus:bg-sink"
+          >
+            {deleteLabel}
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
 }
 
 function NewSet({
@@ -50,7 +187,110 @@ function NewSet({
 export function Sidebar() {
   const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
+  const deleteProject = useDeleteProject();
+  const navigate = useNavigate();
+  const params = useParams<{ project?: string; set?: string }>();
   const [projectOpen, setProjectOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [collapsed, setCollapsed] = useState<Set<string>>(() =>
+    readCollapsed(),
+  );
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
+  const [railed, setRailed] = useState(
+    () => localStorage.getItem(RAILED_KEY) === "true",
+  );
+  const [width, setWidth] = useState<number>(() => readWidth());
+  const dragState = useRef<{ startX: number; startWidth: number } | null>(null);
+  const dragAbort = useRef<AbortController | null>(null);
+
+  const deleteSetProject =
+    pendingDelete?.kind === "set" ? pendingDelete.project.slug : "";
+  const deleteSet = useDeleteSet(deleteSetProject);
+
+  const filtered = useMemo(
+    () => filterProjects(projects, query),
+    [projects, query],
+  );
+
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sidebar-width",
+      railed ? `${RAIL_WIDTH}px` : `${width}px`,
+    );
+  }, [railed, width]);
+
+  // Defensive: if the Sidebar unmounts mid-drag, tear down any live window
+  // listeners (handleDragEnd removes them on mouseup during normal use).
+  useEffect(() => () => dragAbort.current?.abort(), []);
+
+  function toggleCollapsed(slug: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      writeCollapsed(next);
+      return next;
+    });
+  }
+
+  function setRailedPersisted(next: boolean) {
+    setRailed(next);
+    localStorage.setItem(RAILED_KEY, String(next));
+  }
+
+  function handleDragStart(e: ReactMouseEvent) {
+    dragAbort.current?.abort(); // never leak an in-flight drag
+    const controller = new AbortController();
+    dragAbort.current = controller;
+    dragState.current = { startX: e.clientX, startWidth: width };
+    window.addEventListener("mousemove", handleDragMove, {
+      signal: controller.signal,
+    });
+    window.addEventListener("mouseup", handleDragEnd, {
+      signal: controller.signal,
+    });
+  }
+
+  function handleDragMove(e: MouseEvent) {
+    if (!dragState.current) return;
+    const next = clampWidth(
+      dragState.current.startWidth + (e.clientX - dragState.current.startX),
+    );
+    setWidth(next);
+  }
+
+  function handleDragEnd(e: MouseEvent) {
+    if (dragState.current) {
+      const next = clampWidth(
+        dragState.current.startWidth + (e.clientX - dragState.current.startX),
+      );
+      localStorage.setItem(WIDTH_KEY, String(next));
+    }
+    dragState.current = null;
+    dragAbort.current?.abort();
+    dragAbort.current = null;
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    try {
+      if (pendingDelete.kind === "project") {
+        await deleteProject.mutateAsync(pendingDelete.project.slug);
+        if (params.project === pendingDelete.project.slug) navigate("/");
+      } else {
+        await deleteSet.mutateAsync(pendingDelete.set.slug);
+        if (
+          params.project === pendingDelete.project.slug &&
+          params.set === pendingDelete.set.slug
+        ) {
+          navigate("/");
+        }
+      }
+      setPendingDelete(null);
+    } catch (e) {
+      reportError(e);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -61,76 +301,224 @@ export function Sidebar() {
     );
   }
 
-  return (
-    <nav className="flex h-full flex-col gap-4 p-4">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
-          Library
-        </span>
-        <Button
-          variant="ghost"
-          className="px-2 py-1 text-[11px]"
-          disabled={createProject.isPending}
-          onClick={() => setProjectOpen(true)}
+  if (railed) {
+    return (
+      <nav
+        aria-label="Library rail"
+        className="flex h-full flex-col items-center gap-2 p-2"
+      >
+        <button
+          type="button"
+          aria-label="expand sidebar"
+          onClick={() => setRailedPersisted(false)}
+          className="grid h-8 w-8 place-items-center rounded-sm text-ink-faint hover:text-ink"
         >
-          <Plus size={12} /> project
-        </Button>
-      </div>
+          <ArrowLineRight size={14} />
+        </button>
+        {projects?.map((p) => {
+          const isActive = params.project === p.slug;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              aria-label={`Open ${p.title}`}
+              onClick={() => {
+                if (p.sets.length > 0) {
+                  navigate(`/p/${p.slug}/s/${p.sets[0].slug}`);
+                } else {
+                  setRailedPersisted(false);
+                }
+              }}
+              className={`grid h-8 w-8 place-items-center rounded-sm border-l-2 ${isActive ? "border-accent bg-accent-wash text-accent-ink" : "border-transparent text-ink-soft hover:text-ink"}`}
+            >
+              <ProjectIcon icon={p.icon} />
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
 
-      <CreateDialog
-        open={projectOpen}
-        onOpenChange={setProjectOpen}
-        title="New project"
-        label="Project title"
-        submitLabel="Create project"
-        pending={createProject.isPending}
-        existingNames={(projects ?? []).map((p) => p.title)}
-        onSubmit={(title) =>
-          createProject.mutate(
-            { title },
-            {
-              onSuccess: () => setProjectOpen(false),
-              onError: reportError,
-            },
-          )
-        }
-      />
+  return (
+    <div className="relative flex h-full">
+      <nav className="flex h-full flex-1 flex-col gap-4 p-4">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+            Library
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              className="px-2 py-1 text-[11px]"
+              disabled={createProject.isPending}
+              onClick={() => setProjectOpen(true)}
+            >
+              <Plus size={12} /> project
+            </Button>
+            <button
+              type="button"
+              aria-label="collapse sidebar"
+              onClick={() => setRailedPersisted(true)}
+              className="grid h-7 w-7 place-items-center rounded-sm text-ink-faint hover:text-ink"
+            >
+              <ArrowLineLeft size={14} />
+            </button>
+          </div>
+        </div>
 
-      {projects && projects.length === 0 && (
-        <EmptyState
-          title="No projects yet"
-          description="Create a project to begin."
-          icon={<FolderSimple size={24} weight="duotone" />}
+        <CreateDialog
+          open={projectOpen}
+          onOpenChange={setProjectOpen}
+          title="New project"
+          label="Project title"
+          submitLabel="Create project"
+          pending={createProject.isPending}
+          existingNames={(projects ?? []).map((p) => p.title)}
+          withIconPicker
+          onSubmit={(title, icon) =>
+            createProject.mutate(
+              { title, icon },
+              {
+                onSuccess: () => setProjectOpen(false),
+                onError: reportError,
+              },
+            )
+          }
         />
-      )}
 
-      <ul className="flex flex-col gap-3">
-        {projects?.map((p) => (
-          <li key={p.id}>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-ink">{p.title}</span>
-              <NewSet
-                project={p.slug}
-                existingNames={p.sets.map((s) => s.title)}
-              />
+        {projects && projects.length === 0 && (
+          <EmptyState
+            title="No projects yet"
+            description="Create a project to begin."
+            icon={<FolderSimple size={24} weight="duotone" />}
+          />
+        )}
+
+        {projects && projects.length > 0 && (
+          <Input
+            value={query}
+            placeholder="Filter projects & sets…"
+            aria-label="Filter projects and sets"
+            onChange={(e) => setQuery(e.target.value)}
+            className="text-[13px]"
+          />
+        )}
+
+        <ul className="flex flex-col gap-3">
+          {filtered.map(({ project: p, sets, forceExpand }) => {
+            const isCollapsed = collapsed.has(p.slug) && !forceExpand;
+            return (
+              <li key={p.id}>
+                <div className="group flex items-center justify-between">
+                  <div className="flex min-w-0 items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label={
+                        isCollapsed
+                          ? `expand ${p.title}`
+                          : `collapse ${p.title}`
+                      }
+                      onClick={() => toggleCollapsed(p.slug)}
+                      className="grid h-5 w-5 shrink-0 place-items-center text-ink-faint hover:text-ink"
+                    >
+                      {isCollapsed ? (
+                        <CaretRight size={12} />
+                      ) : (
+                        <CaretDown size={12} />
+                      )}
+                    </button>
+                    <ProjectIcon icon={p.icon} />
+                    <span className="truncate text-sm font-medium text-ink">
+                      {p.title}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <NewSet
+                      project={p.slug}
+                      existingNames={p.sets.map((s) => s.title)}
+                    />
+                    <RowMenu
+                      triggerLabel={`more actions for ${p.title}`}
+                      deleteLabel="Delete project"
+                      onDelete={() =>
+                        setPendingDelete({ kind: "project", project: p })
+                      }
+                    />
+                  </div>
+                </div>
+                {!isCollapsed && (
+                  <ul className="mt-1 flex flex-col">
+                    {sets.map((s) => (
+                      <li key={s.id} className="group flex items-center">
+                        <NavLink
+                          to={`/p/${p.slug}/s/${s.slug}`}
+                          className={({ isActive }) =>
+                            `block flex-1 truncate rounded-sm border-l-2 px-2 py-1 text-[13px] ${isActive ? "border-accent bg-accent-wash text-accent-ink" : "border-transparent text-ink-soft hover:text-ink"}`
+                          }
+                        >
+                          {s.title}
+                        </NavLink>
+                        <RowMenu
+                          triggerLabel={`more actions for ${s.title}`}
+                          deleteLabel="Delete set"
+                          onDelete={() =>
+                            setPendingDelete({
+                              kind: "set",
+                              project: p,
+                              set: s,
+                            })
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        <Modal
+          open={pendingDelete !== null}
+          onOpenChange={(open) => {
+            if (!open) setPendingDelete(null);
+          }}
+          title={
+            pendingDelete
+              ? `Delete "${pendingDelete.kind === "project" ? pendingDelete.project.title : pendingDelete.set.title}"?`
+              : ""
+          }
+        >
+          {pendingDelete && (
+            <div className="flex flex-col gap-4">
+              <p>
+                {pendingDelete.kind === "project"
+                  ? `This deletes ${pendingDelete.project.sets.length} set${pendingDelete.project.sets.length === 1 ? "" : "s"} and everything in them. This cannot be undone.`
+                  : "This deletes the set and everything in it. This cannot be undone."}
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setPendingDelete(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-accent-ink hover:opacity-90"
+                  onClick={() => void confirmDelete()}
+                >
+                  Delete
+                </Button>
+              </div>
             </div>
-            <ul className="mt-1 flex flex-col">
-              {p.sets.map((s) => (
-                <li key={s.id}>
-                  <NavLink
-                    to={`/p/${p.slug}/s/${s.slug}`}
-                    className={({ isActive }) =>
-                      `block rounded-sm px-2 py-1 text-[13px] ${isActive ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"}`
-                    }
-                  >
-                    {s.title}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
-    </nav>
+          )}
+        </Modal>
+      </nav>
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize sidebar"
+        tabIndex={-1}
+        onMouseDown={handleDragStart}
+        className="absolute inset-y-0 right-0 w-1 cursor-col-resize hover:bg-hairline-strong"
+      />
+    </div>
   );
 }

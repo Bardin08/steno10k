@@ -1,5 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Button, Input, Modal } from "../components";
+import {
+  DEFAULT_PROJECT_ICON,
+  PROJECT_ICON_KEYS,
+  ProjectIcon,
+} from "./projectIcons";
 
 interface CreateDialogProps {
   open: boolean;
@@ -10,7 +15,9 @@ interface CreateDialogProps {
   pending?: boolean;
   /** Existing sibling names; a case-insensitive match is rejected inline. */
   existingNames?: string[];
-  onSubmit: (value: string) => void;
+  /** Renders a curated icon picker (used by the New Project dialog). */
+  withIconPicker?: boolean;
+  onSubmit: (value: string, icon?: string) => void;
 }
 
 /** A small titled form modal: one text field + Cancel/Submit. Submits the
@@ -23,10 +30,12 @@ export function CreateDialog({
   submitLabel,
   pending,
   existingNames,
+  withIconPicker,
   onSubmit,
 }: CreateDialogProps) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | undefined>();
+  const [icon, setIcon] = useState(DEFAULT_PROJECT_ICON);
 
   // Start every open blank + error-free. This runs on open regardless of how
   // the previous instance closed — including the parent closing via onSuccess,
@@ -35,6 +44,7 @@ export function CreateDialog({
     if (open) {
       setValue("");
       setError(undefined);
+      setIcon(DEFAULT_PROJECT_ICON);
     }
   }, [open]);
 
@@ -49,7 +59,7 @@ export function CreateDialog({
       setError(`"${trimmed}" already exists.`);
       return;
     }
-    onSubmit(trimmed);
+    onSubmit(trimmed, withIconPicker ? icon : undefined);
   }
 
   return (
@@ -65,6 +75,26 @@ export function CreateDialog({
             if (error) setError(undefined);
           }}
         />
+        {withIconPicker && (
+          <div className="flex flex-wrap gap-1.5">
+            {PROJECT_ICON_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                aria-label={`icon ${key}`}
+                aria-pressed={icon === key}
+                onClick={() => setIcon(key)}
+                className={`grid h-8 w-8 place-items-center rounded-sm border transition-colors duration-[var(--dur-micro)] ease-editorial ${
+                  icon === key
+                    ? "border-ink bg-ink text-paper"
+                    : "border-hairline text-ink-faint hover:text-ink"
+                }`}
+              >
+                <ProjectIcon icon={key} />
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex justify-end gap-2">
           <Button
             type="button"

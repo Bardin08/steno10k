@@ -24,7 +24,19 @@ function initialStages(): RunView["stages"] {
   ) as RunView["stages"];
 }
 
+function emptyView(): RunView {
+  return {
+    status: "queued",
+    stages: initialStages(),
+    log: [],
+    terminal: false,
+  };
+}
+
 function reduce(state: RunView, ev: RunEvent): RunView {
+  // Switching to a different run clears the previous run's log + stage statuses,
+  // so a re-run starts from a clean slate instead of appending to stale state.
+  if (ev.kind === "run_reset") return emptyView();
   const stage = ev.payload.stage as StageName | undefined;
   const progress =
     typeof ev.payload.progress === "number" ? ev.payload.progress : undefined;
@@ -83,15 +95,13 @@ export function useRunEvents(
   set?: string,
 ): RunView {
   const qc = useQueryClient();
-  const [view, dispatch] = useReducer(reduce, null, () => ({
-    status: "queued" as RunStatus,
-    stages: initialStages(),
-    log: [],
-    terminal: false,
-  }));
+  const [view, dispatch] = useReducer(reduce, null, emptyView);
 
   useEffect(() => {
     if (!runId) return;
+    // Reset before attaching to a (possibly new) run so a re-run doesn't show
+    // the previous run's accumulated events/stages.
+    dispatch({ kind: "run_reset", payload: {} });
     const es = new EventSource(apiUrl(`/runs/${runId}/events`));
     const makeHandler =
       (kind: (typeof EVENT_KINDS)[number]) => (ev: MessageEvent) => {
