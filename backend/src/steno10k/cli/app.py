@@ -22,6 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     commands.add_projects(sub)
     commands.add_sets(sub)
     commands.add_import(sub)
+    commands.add_recordings(sub)
     return parser
 
 

@@ -165,6 +165,48 @@ def cmd_import(args: argparse.Namespace, deps: Deps) -> int:
     return ExitCode.OK
 
 
+# -- recordings --------------------------------------------------------------
+
+
+def add_recordings(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    p = sub.add_parser("recordings", help="manage recordings in a set")
+    rsub = p.add_subparsers(dest="recordings_cmd", required=True)
+
+    lst = rsub.add_parser("list", parents=[common_parser()], help="list recordings in a set")
+    lst.add_argument("project")
+    lst.add_argument("set_", metavar="SET")
+    lst.set_defaults(func=cmd_recordings_list)
+
+    rm = rsub.add_parser("rm", parents=[common_parser()], help="remove a recording from a set")
+    rm.add_argument("project")
+    rm.add_argument("set_", metavar="SET")
+    rm.add_argument("recording", help="normalized recording filename")
+    rm.add_argument("-y", "--yes", action="store_true", help="skip confirmation")
+    rm.set_defaults(func=cmd_recordings_rm)
+
+
+def cmd_recordings_list(args: argparse.Namespace, deps: Deps) -> int:
+    try:
+        s = deps.storage.get_set(args.project, args.set_)
+    except NotFound as exc:
+        print(str(exc), file=sys.stderr)
+        return ExitCode.USAGE
+    output.emit_recordings(s.recordings, as_json=deps.json)
+    return ExitCode.OK
+
+
+def cmd_recordings_rm(args: argparse.Namespace, deps: Deps) -> int:
+    prompt = f"Remove recording {args.recording!r} from {args.project}/{args.set_}?"
+    if not confirm(args.yes, prompt):
+        return ExitCode.OK
+    try:
+        deps.storage.remove_recording(args.project, args.set_, args.recording)
+    except NotFound as exc:
+        print(str(exc), file=sys.stderr)
+        return ExitCode.USAGE
+    return ExitCode.OK
+
+
 # -- shared ------------------------------------------------------------------
 
 
