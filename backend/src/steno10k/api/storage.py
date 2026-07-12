@@ -52,9 +52,7 @@ class Storage:
         if not project_file.is_file():
             raise NotFound(f"project not found: {slug}")
         raw = json.loads(project_file.read_text(encoding="utf-8"))
-        project = Project(
-            slug=raw["slug"], title=raw["title"], id=raw["id"], icon=raw.get("icon")
-        )
+        project = Project(slug=raw["slug"], title=raw["title"], id=raw["id"], icon=raw.get("icon"))
         project.sets = self.list_sets(slug)
         return project
 
