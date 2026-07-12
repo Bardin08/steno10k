@@ -7,7 +7,7 @@ const topLink = ({ isActive }: { isActive: boolean }) =>
 
 export function AppLayout() {
   return (
-    <div className="grid min-h-screen grid-cols-[248px_1fr]">
+    <div className="grid min-h-screen grid-cols-[var(--sidebar-width,248px)_1fr]">
       <aside className="border-r border-hairline bg-surface">
         <Sidebar />
       </aside>
