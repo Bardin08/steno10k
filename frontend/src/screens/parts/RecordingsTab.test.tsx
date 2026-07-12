@@ -80,9 +80,18 @@ test("empty state when no recordings", () => {
   expect(screen.getByText(/drop audio/i)).toBeInTheDocument();
 });
 
+const oneRecording = [
+  {
+    source_name: "lecture1.mp3",
+    normalized_name: "lecture1.mp3",
+    duration_seconds: 3600,
+    chunks: ["a", "b"],
+  },
+];
+
 test("clicking Transcribe enqueues a run for this project/set and shows the pipeline", () => {
   vi.spyOn(hooks, "useRecordings").mockReturnValue({
-    data: [],
+    data: oneRecording,
     isLoading: false,
     isError: false,
   } as unknown as ReturnType<typeof hooks.useRecordings>);
@@ -97,7 +106,7 @@ test("clicking Transcribe enqueues a run for this project/set and shows the pipe
 
 test("gear opens the run settings modal", () => {
   vi.spyOn(hooks, "useRecordings").mockReturnValue({
-    data: [],
+    data: oneRecording,
     isLoading: false,
     isError: false,
   } as unknown as ReturnType<typeof hooks.useRecordings>);
@@ -108,7 +117,7 @@ test("gear opens the run settings modal", () => {
 
 test("confirming the modal with force enqueues force: true", () => {
   vi.spyOn(hooks, "useRecordings").mockReturnValue({
-    data: [],
+    data: oneRecording,
     isLoading: false,
     isError: false,
   } as unknown as ReturnType<typeof hooks.useRecordings>);
@@ -125,9 +134,23 @@ test("confirming the modal with force enqueues force: true", () => {
   );
 });
 
-test("with transcribe disabled in config, the modal lists only the effective (cascaded) enabled stages", () => {
+test("with no recordings, the Transcribe split button is disabled and enqueue is not called", () => {
   vi.spyOn(hooks, "useRecordings").mockReturnValue({
     data: [],
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useRecordings>);
+  const enqueue = renderTab();
+  const primary = screen.getByRole("button", { name: "Transcribe" });
+  expect(primary).toBeDisabled();
+  fireEvent.click(primary);
+  expect(enqueue.mutate).not.toHaveBeenCalled();
+  expect(screen.getByText(/upload a recording to run/i)).toBeInTheDocument();
+});
+
+test("with transcribe disabled in config, the modal lists only the effective (cascaded) enabled stages", () => {
+  vi.spyOn(hooks, "useRecordings").mockReturnValue({
+    data: oneRecording,
     isLoading: false,
     isError: false,
   } as unknown as ReturnType<typeof hooks.useRecordings>);

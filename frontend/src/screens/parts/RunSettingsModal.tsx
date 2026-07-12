@@ -6,6 +6,7 @@ export interface RunSettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   enabledStages: string[];
+  confirmDisabled?: boolean;
   onConfirm: (opts: { force: boolean }) => void;
 }
 
@@ -13,6 +14,7 @@ export function RunSettingsModal({
   open,
   onOpenChange,
   enabledStages,
+  confirmDisabled,
   onConfirm,
 }: RunSettingsModalProps) {
   const [force, setForce] = useState(false);
@@ -54,7 +56,12 @@ export function RunSettingsModal({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={() => onConfirm({ force })}>Transcribe</Button>
+          <Button
+            disabled={confirmDisabled}
+            onClick={() => onConfirm({ force })}
+          >
+            Transcribe
+          </Button>
         </div>
       </div>
     </Modal>

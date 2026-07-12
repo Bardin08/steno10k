@@ -30,3 +30,22 @@ test("lists enabled stages", () => {
   expect(screen.getByText("chunk")).toBeInTheDocument();
   expect(screen.getByText("transcribe")).toBeInTheDocument();
 });
+
+test("confirmDisabled disables the confirm button", () => {
+  const onConfirm = vi.fn();
+  render(
+    <MemoryRouter>
+      <RunSettingsModal
+        open
+        onOpenChange={() => {}}
+        enabledStages={["normalize"]}
+        confirmDisabled
+        onConfirm={onConfirm}
+      />
+    </MemoryRouter>,
+  );
+  const confirmButton = screen.getByRole("button", { name: /transcribe/i });
+  expect(confirmButton).toBeDisabled();
+  fireEvent.click(confirmButton);
+  expect(onConfirm).not.toHaveBeenCalled();
+});

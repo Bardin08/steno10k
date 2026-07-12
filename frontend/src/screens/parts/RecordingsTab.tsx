@@ -51,10 +51,13 @@ export function RecordingsTab({
   const { enabled } = resolveEnabledStages(flags);
   const enabledStages = STAGE_NAMES.filter((s) => enabled.has(s));
 
+  const hasRecordings = (data?.length ?? 0) > 0;
+
   const onError = (e: unknown) =>
     toast.error(e instanceof ApiError ? e.message : "Upload failed");
 
   function runEnqueue(opts?: { force?: boolean }) {
+    if (!hasRecordings) return;
     enqueue.mutate(
       { project, set, ...opts },
       {
@@ -78,13 +81,14 @@ export function RecordingsTab({
       <div className="flex items-center gap-4">
         <SplitButton
           label="Transcribe"
-          disabled={enqueue.isPending}
+          disabled={enqueue.isPending || !hasRecordings}
           onPrimary={() => runEnqueue()}
           onGear={() => setSettingsOpen(true)}
         />
         <span className="font-mono text-[11px] text-ink-faint">
-          Runs {enabledStages.length} configured stage
-          {enabledStages.length === 1 ? "" : "s"}.
+          {hasRecordings
+            ? `Runs ${enabledStages.length} configured stage${enabledStages.length === 1 ? "" : "s"}.`
+            : "Upload a recording to run."}
         </span>
       </div>
 
@@ -126,6 +130,7 @@ export function RecordingsTab({
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         enabledStages={enabledStages}
+        confirmDisabled={!hasRecordings}
         onConfirm={({ force }) => {
           setSettingsOpen(false);
           runEnqueue({ force });
