@@ -43,7 +43,11 @@ export function SetDetail() {
           <TabsTrigger value="artifacts">Artifacts</TabsTrigger>
         </TabsList>
         <TabsContent value="recordings">
-          <RecordingsTab key={`${project}/${set}`} project={project} set={set} />
+          <RecordingsTab
+            key={`${project}/${set}`}
+            project={project}
+            set={set}
+          />
         </TabsContent>
         <TabsContent value="run">
           <RunTab key={`${project}/${set}`} project={project} set={set} />

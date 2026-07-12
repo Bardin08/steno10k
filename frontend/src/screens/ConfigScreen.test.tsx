@@ -1,5 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import { makeQueryClient } from "../app/queryClient";
 import * as hooks from "../api/hooks";
@@ -15,7 +16,7 @@ function renderConfig() {
   );
 }
 
-test("renders transcription, llm, and per-stage toggles from config", () => {
+test("renders transcription, llm, and per-stage toggles from config", async () => {
   vi.spyOn(hooks, "usePutConfig").mockReturnValue({
     mutate: vi.fn(),
     isPending: false,
@@ -46,9 +47,17 @@ test("renders transcription, llm, and per-stage toggles from config", () => {
     isError: false,
   } as unknown as ReturnType<typeof hooks.useConfig>);
 
+  const user = userEvent.setup();
   renderConfig();
+  // Default tab: Transcription.
   expect(screen.getByLabelText(/whisper model/i)).toBeInTheDocument();
+
+  // LLM tab.
+  await user.click(screen.getByRole("tab", { name: "LLM" }));
   expect(screen.getByLabelText(/llm model/i)).toBeInTheDocument();
+
+  // Stages tab: per-stage checkboxes reflect config (absent key = enabled).
+  await user.click(screen.getByRole("tab", { name: "Stages" }));
   expect(screen.getByLabelText("transcribe")).toBeChecked();
   expect(screen.getByLabelText("notify")).not.toBeChecked();
 });

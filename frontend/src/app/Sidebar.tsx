@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { NavLink } from "react-router";
 import { FolderSimple, Plus } from "@phosphor-icons/react";
 import { Button, EmptyState, Skeleton } from "../components";
 import { toast } from "../components";
 import { useCreateProject, useCreateSet, useProjects } from "../api/hooks";
 import { ApiError } from "../api/client";
+import { CreateDialog } from "./CreateDialog";
 
 function reportError(e: unknown) {
   toast.error(e instanceof ApiError ? e.message : "Something went wrong");
@@ -11,22 +13,37 @@ function reportError(e: unknown) {
 
 function NewSet({ project }: { project: string }) {
   const create = useCreateSet(project);
+  const [open, setOpen] = useState(false);
   return (
-    <button
-      className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-ink-faint hover:text-ink"
-      onClick={() => {
-        const title = window.prompt("New set title");
-        if (title) create.mutate(title, { onError: reportError });
-      }}
-    >
-      <Plus size={12} /> set
-    </button>
+    <>
+      <button
+        className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-ink-faint hover:text-ink"
+        onClick={() => setOpen(true)}
+      >
+        <Plus size={12} /> set
+      </button>
+      <CreateDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="New set"
+        label="Set title"
+        submitLabel="Create set"
+        pending={create.isPending}
+        onSubmit={(title) =>
+          create.mutate(title, {
+            onSuccess: () => setOpen(false),
+            onError: reportError,
+          })
+        }
+      />
+    </>
   );
 }
 
 export function Sidebar() {
   const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
+  const [projectOpen, setProjectOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -47,14 +64,26 @@ export function Sidebar() {
           variant="ghost"
           className="px-2 py-1 text-[11px]"
           disabled={createProject.isPending}
-          onClick={() => {
-            const title = window.prompt("New project title");
-            if (title) createProject.mutate(title, { onError: reportError });
-          }}
+          onClick={() => setProjectOpen(true)}
         >
           <Plus size={12} /> project
         </Button>
       </div>
+
+      <CreateDialog
+        open={projectOpen}
+        onOpenChange={setProjectOpen}
+        title="New project"
+        label="Project title"
+        submitLabel="Create project"
+        pending={createProject.isPending}
+        onSubmit={(title) =>
+          createProject.mutate(title, {
+            onSuccess: () => setProjectOpen(false),
+            onError: reportError,
+          })
+        }
+      />
 
       {projects && projects.length === 0 && (
         <EmptyState

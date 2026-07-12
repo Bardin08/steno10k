@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, test, vi } from "vitest";
 import { makeQueryClient } from "./queryClient";
@@ -55,4 +55,26 @@ test("shows empty state when there are no projects", () => {
   } as unknown as ReturnType<typeof hooks.useProjects>);
   renderSidebar();
   expect(screen.getByText(/no projects/i)).toBeInTheDocument();
+});
+
+test("the new-project dialog submits the typed title", () => {
+  vi.spyOn(hooks, "useProjects").mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useProjects>);
+  const mutate = vi.fn();
+  vi.spyOn(hooks, "useCreateProject").mockReturnValue({
+    mutate,
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.useCreateProject>);
+
+  renderSidebar();
+  fireEvent.click(screen.getByRole("button", { name: /project/i }));
+  fireEvent.change(screen.getByLabelText(/project title/i), {
+    target: { value: "Con Law" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /create project/i }));
+
+  expect(mutate).toHaveBeenCalledWith("Con Law", expect.anything());
 });

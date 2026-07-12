@@ -16,13 +16,18 @@ test("Textarea renders its label", () => {
   expect(screen.getByLabelText("Prompt")).toBeInTheDocument();
 });
 
-test("Select renders options and its label", () => {
+test("Select renders its label and the selected option's text", () => {
   render(
-    <Select label="Language" defaultValue="en">
-      <option value="en">English</option>
-      <option value="uk">Ukrainian</option>
-    </Select>,
+    <Select
+      label="Language"
+      value="uk"
+      options={[
+        { value: "en", label: "English" },
+        { value: "uk", label: "Ukrainian" },
+      ]}
+    />,
   );
   expect(screen.getByLabelText("Language")).toBeInTheDocument();
-  expect(screen.getByRole("option", { name: "Ukrainian" })).toBeInTheDocument();
+  // Closed trigger shows the selected option's label.
+  expect(screen.getByText("Ukrainian")).toBeInTheDocument();
 });

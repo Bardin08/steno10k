@@ -3,7 +3,8 @@
 export { Button, type ButtonProps } from "./Button";
 export { Input, type InputProps } from "./Input";
 export { Textarea, type TextareaProps } from "./Textarea";
-export { Select, type SelectProps } from "./Select";
+export { Select, type SelectProps, type SelectOption } from "./Select";
+export { Checkbox, type CheckboxProps } from "./Checkbox";
 export { Card } from "./Card";
 export { Skeleton } from "./Skeleton";
 export { ErrorState, type ErrorStateProps } from "./ErrorState";
