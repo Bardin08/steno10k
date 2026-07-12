@@ -70,7 +70,7 @@ jobs:
           cache: npm
           cache-dependency-path: docs-site/package-lock.json
       - run: npm ci
-      - name: Build docs (verifies MDX + links + search index)
+      - name: Build docs (compiles MDX + builds search index)
         run: npm run build
 
   docker:
