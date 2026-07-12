@@ -24,6 +24,7 @@ def run_set(reg: StageRegistry, ctx: StageContext, opts: RunOptions) -> None:
         elif result.status is StageStatus.SKIPPED:
             kind = EventKind.STAGE_SKIPPED
         else:
+            # FAILED (and defensively PENDING, which is never a valid run() result)
             kind = EventKind.STAGE_FAILED
         ctx.events.emit(Event(kind=kind, payload={"stage": stage.name, "stats": result.stats}))
 
