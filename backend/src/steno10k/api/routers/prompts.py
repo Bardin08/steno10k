@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from steno10k.api.configsvc import ConfigService
 from steno10k.api.deps import get_config_service, get_data_root
+from steno10k.api.dto import Envelope
 from steno10k.api.envelope import ApiError, ok
 from steno10k.lib.prompts import PROMPT_NAMES, default_prompt
 
@@ -47,7 +48,7 @@ def _require_known(name: str) -> None:
         raise ApiError(404, "prompt_not_found", f"prompt not found: {name}")
 
 
-@router.get("")
+@router.get("", response_model=Envelope[list[PromptDTO]])
 def list_prompts(
     config_service: Annotated[ConfigService, Depends(get_config_service)],
     data_root: Annotated[Path, Depends(get_data_root)],
@@ -55,7 +56,7 @@ def list_prompts(
     return ok([_dto(config_service, data_root, name).model_dump() for name in sorted(PROMPT_NAMES)])
 
 
-@router.put("/{name}")
+@router.put("/{name}", response_model=Envelope[PromptDTO])
 def put_prompt(
     name: str,
     body: PromptUpdate,
@@ -69,7 +70,7 @@ def put_prompt(
     return ok(_dto(config_service, data_root, name).model_dump())
 
 
-@router.post("/{name}/reset")
+@router.post("/{name}/reset", response_model=Envelope[PromptDTO])
 def reset_prompt(
     name: str,
     config_service: Annotated[ConfigService, Depends(get_config_service)],

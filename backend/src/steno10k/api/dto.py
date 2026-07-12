@@ -5,7 +5,28 @@ from typing import Any
 from pydantic import BaseModel
 
 from steno10k.api.runq import Run
+from steno10k.contracts.config import Config
 from steno10k.contracts.domain import Project, Recording, RecordingSet
+
+
+class ErrorBody(BaseModel):
+    code: str
+    message: str
+    details: dict[str, Any] = {}
+
+
+class Envelope[T](BaseModel):
+    data: T | None = None
+    error: ErrorBody | None = None
+
+
+class CancelResult(BaseModel):
+    cancelled: bool
+
+
+class PutConfigResult(BaseModel):
+    config: Config
+    cascaded_off: list[str]
 
 
 class RecordingDTO(BaseModel):
@@ -49,16 +70,26 @@ class ProjectDTO(BaseModel):
     slug: str
     title: str
     sets: list[SetDTO]
+    icon: str | None = None
 
     @classmethod
     def from_domain(cls, p: Project) -> ProjectDTO:
         return cls(
-            id=p.id, slug=p.slug, title=p.title, sets=[SetDTO.from_domain(s) for s in p.sets]
+            id=p.id,
+            slug=p.slug,
+            title=p.title,
+            sets=[SetDTO.from_domain(s) for s in p.sets],
+            icon=p.icon,
         )
 
 
 class CreateTitle(BaseModel):
     title: str
+
+
+class CreateProject(BaseModel):
+    title: str
+    icon: str | None = None
 
 
 class RunDTO(BaseModel):
@@ -86,3 +117,4 @@ class SystemInfoDTO(BaseModel):
     current_model: str
     max_workers: int
     data_root: str
+    llm_key_present: bool

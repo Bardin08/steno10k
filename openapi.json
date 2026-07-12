@@ -1,6 +1,40 @@
 {
   "components": {
     "schemas": {
+      "ArtifactDTO": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "size"
+        ],
+        "title": "ArtifactDTO",
+        "type": "object"
+      },
       "AudioConfig": {
         "properties": {
           "chunk_seconds": {
@@ -44,6 +78,19 @@
         "title": "Body_upload_recordings_api_v1_projects__project__sets__set___recordings_post",
         "type": "object"
       },
+      "CancelResult": {
+        "properties": {
+          "cancelled": {
+            "title": "Cancelled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cancelled"
+        ],
+        "title": "CancelResult",
+        "type": "object"
+      },
       "Config": {
         "properties": {
           "audio": {
@@ -69,6 +116,30 @@
           }
         },
         "title": "Config",
+        "type": "object"
+      },
+      "CreateProject": {
+        "properties": {
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "CreateProject",
         "type": "object"
       },
       "CreateTitle": {
@@ -119,6 +190,438 @@
           "set"
         ],
         "title": "EnqueueRunRequest",
+        "type": "object"
+      },
+      "Envelope_CancelResult_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CancelResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[CancelResult]",
+        "type": "object"
+      },
+      "Envelope_Config_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Config"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[Config]",
+        "type": "object"
+      },
+      "Envelope_NoneType_": {
+        "properties": {
+          "data": {
+            "title": "Data",
+            "type": "null"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[NoneType]",
+        "type": "object"
+      },
+      "Envelope_ProjectDTO_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[ProjectDTO]",
+        "type": "object"
+      },
+      "Envelope_PromptDTO_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PromptDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[PromptDTO]",
+        "type": "object"
+      },
+      "Envelope_PutConfigResult_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PutConfigResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[PutConfigResult]",
+        "type": "object"
+      },
+      "Envelope_RunDTO_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[RunDTO]",
+        "type": "object"
+      },
+      "Envelope_SetDTO_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SetDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[SetDTO]",
+        "type": "object"
+      },
+      "Envelope_SystemInfoDTO_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemInfoDTO"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[SystemInfoDTO]",
+        "type": "object"
+      },
+      "Envelope_list_ArtifactDTO__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ArtifactDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[list[ArtifactDTO]]",
+        "type": "object"
+      },
+      "Envelope_list_ProjectDTO__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProjectDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[list[ProjectDTO]]",
+        "type": "object"
+      },
+      "Envelope_list_PromptDTO__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PromptDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[list[PromptDTO]]",
+        "type": "object"
+      },
+      "Envelope_list_RecordingDTO__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RecordingDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[list[RecordingDTO]]",
+        "type": "object"
+      },
+      "Envelope_list_RunDTO__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RunDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[list[RunDTO]]",
+        "type": "object"
+      },
+      "Envelope_list_SetDTO__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SetDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "Envelope[list[SetDTO]]",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Details",
+            "type": "object"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -201,6 +704,71 @@
         "title": "OutputConfig",
         "type": "object"
       },
+      "ProjectDTO": {
+        "properties": {
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "sets": {
+            "items": {
+              "$ref": "#/components/schemas/SetDTO"
+            },
+            "title": "Sets",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "sets"
+        ],
+        "title": "ProjectDTO",
+        "type": "object"
+      },
+      "PromptDTO": {
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "source",
+          "content"
+        ],
+        "title": "PromptDTO",
+        "type": "object"
+      },
       "PromptUpdate": {
         "properties": {
           "content": {
@@ -241,6 +809,147 @@
         "title": "PromptsConfig",
         "type": "object"
       },
+      "PutConfigResult": {
+        "properties": {
+          "cascaded_off": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cascaded Off",
+            "type": "array"
+          },
+          "config": {
+            "$ref": "#/components/schemas/Config"
+          }
+        },
+        "required": [
+          "config",
+          "cascaded_off"
+        ],
+        "title": "PutConfigResult",
+        "type": "object"
+      },
+      "RecordingDTO": {
+        "properties": {
+          "chunks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Chunks",
+            "type": "array"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
+          },
+          "normalized_name": {
+            "title": "Normalized Name",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_name",
+          "normalized_name",
+          "duration_seconds",
+          "chunks"
+        ],
+        "title": "RecordingDTO",
+        "type": "object"
+      },
+      "RunDTO": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "set_": {
+            "title": "Set",
+            "type": "string"
+          },
+          "stats": {
+            "additionalProperties": true,
+            "title": "Stats",
+            "type": "object"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project",
+          "set_",
+          "status",
+          "position",
+          "stats"
+        ],
+        "title": "RunDTO",
+        "type": "object"
+      },
+      "SetDTO": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "project_slug": {
+            "title": "Project Slug",
+            "type": "string"
+          },
+          "recordings": {
+            "items": {
+              "$ref": "#/components/schemas/RecordingDTO"
+            },
+            "title": "Recordings",
+            "type": "array"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "stages": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Stages",
+            "type": "object"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "project_slug",
+          "recordings",
+          "stages"
+        ],
+        "title": "SetDTO",
+        "type": "object"
+      },
       "StageName": {
         "enum": [
           "normalize",
@@ -269,6 +978,42 @@
           }
         },
         "title": "StagesConfig",
+        "type": "object"
+      },
+      "SystemInfoDTO": {
+        "properties": {
+          "current_model": {
+            "title": "Current Model",
+            "type": "string"
+          },
+          "data_root": {
+            "title": "Data Root",
+            "type": "string"
+          },
+          "llm_key_present": {
+            "title": "Llm Key Present",
+            "type": "boolean"
+          },
+          "max_workers": {
+            "title": "Max Workers",
+            "type": "integer"
+          },
+          "whisper_models": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Whisper Models",
+            "type": "array"
+          }
+        },
+        "required": [
+          "whisper_models",
+          "current_model",
+          "max_workers",
+          "data_root",
+          "llm_key_present"
+        ],
+        "title": "SystemInfoDTO",
         "type": "object"
       },
       "TelegramConfig": {
@@ -390,9 +1135,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Config Api V1 Config Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_Config_"
                 }
               }
             },
@@ -421,9 +1164,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Put Config Api V1 Config Put",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_PutConfigResult_"
                 }
               }
             },
@@ -454,9 +1195,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Defaults Api V1 Config Defaults Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_Config_"
                 }
               }
             },
@@ -497,9 +1236,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Projects Api V1 Projects Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_list_ProjectDTO__"
                 }
               }
             },
@@ -517,7 +1254,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTitle"
+                "$ref": "#/components/schemas/CreateProject"
               }
             }
           },
@@ -528,9 +1265,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Create Project Api V1 Projects Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_ProjectDTO_"
                 }
               }
             },
@@ -572,9 +1307,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Delete Project Api V1 Projects  Project  Delete",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_NoneType_"
                 }
               }
             },
@@ -614,9 +1347,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Project Api V1 Projects  Project  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_ProjectDTO_"
                 }
               }
             },
@@ -658,9 +1389,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Sets Api V1 Projects  Project  Sets Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_list_SetDTO__"
                 }
               }
             },
@@ -710,9 +1439,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Create Set Api V1 Projects  Project  Sets Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_SetDTO_"
                 }
               }
             },
@@ -763,9 +1490,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Delete Set Api V1 Projects  Project  Sets  Set   Delete",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_NoneType_"
                 }
               }
             },
@@ -814,9 +1539,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Set Api V1 Projects  Project  Sets  Set   Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_SetDTO_"
                 }
               }
             },
@@ -867,9 +1590,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Artifacts Api V1 Projects  Project  Sets  Set   Artifacts Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_list_ArtifactDTO__"
                 }
               }
             },
@@ -1036,9 +1757,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Recordings Api V1 Projects  Project  Sets  Set   Recordings Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_list_RecordingDTO__"
                 }
               }
             },
@@ -1097,9 +1816,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Upload Recordings Api V1 Projects  Project  Sets  Set   Recordings Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_list_RecordingDTO__"
                 }
               }
             },
@@ -1159,9 +1876,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Delete Recording Api V1 Projects  Project  Sets  Set   Recordings  Recording  Delete",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_NoneType_"
                 }
               }
             },
@@ -1192,9 +1907,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Prompts Api V1 Prompts Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_list_PromptDTO__"
                 }
               }
             },
@@ -1236,9 +1949,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Put Prompt Api V1 Prompts  Name  Put",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_PromptDTO_"
                 }
               }
             },
@@ -1280,9 +1991,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Reset Prompt Api V1 Prompts  Name  Reset Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_PromptDTO_"
                 }
               }
             },
@@ -1313,9 +2022,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response List Runs Api V1 Runs Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_list_RunDTO__"
                 }
               }
             },
@@ -1344,9 +2051,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Create Run Api V1 Runs Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_RunDTO_"
                 }
               }
             },
@@ -1388,9 +2093,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Cancel Run Api V1 Runs  Run Id  Delete",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_CancelResult_"
                 }
               }
             },
@@ -1430,9 +2133,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Run Api V1 Runs  Run Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_RunDTO_"
                 }
               }
             },
@@ -1503,9 +2204,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get System Info Api V1 System Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/Envelope_SystemInfoDTO_"
                 }
               }
             },

@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from steno10k.api.deps import get_run_queue
-from steno10k.api.dto import RunDTO
+from steno10k.api.dto import CancelResult, Envelope, RunDTO
 from steno10k.api.envelope import ApiError, ok
 from steno10k.api.runq import RunQueue, RunStatus
 from steno10k.api.sse import sse_stream
@@ -23,7 +23,7 @@ class EnqueueRunRequest(BaseModel):
     force: bool = False
 
 
-@router.post("")
+@router.post("", response_model=Envelope[RunDTO])
 def create_run(
     body: EnqueueRunRequest, run_queue: Annotated[RunQueue, Depends(get_run_queue)]
 ) -> dict[str, Any]:
@@ -34,12 +34,12 @@ def create_run(
     return ok(RunDTO.from_domain(run).model_dump())
 
 
-@router.get("")
+@router.get("", response_model=Envelope[list[RunDTO]])
 def list_runs(run_queue: Annotated[RunQueue, Depends(get_run_queue)]) -> dict[str, Any]:
     return ok([RunDTO.from_domain(r).model_dump() for r in run_queue.list()])
 
 
-@router.get("/{run_id}")
+@router.get("/{run_id}", response_model=Envelope[RunDTO])
 def get_run(run_id: str, run_queue: Annotated[RunQueue, Depends(get_run_queue)]) -> dict[str, Any]:
     try:
         run = run_queue.get(run_id)
@@ -48,7 +48,7 @@ def get_run(run_id: str, run_queue: Annotated[RunQueue, Depends(get_run_queue)])
     return ok(RunDTO.from_domain(run).model_dump())
 
 
-@router.delete("/{run_id}")
+@router.delete("/{run_id}", response_model=Envelope[CancelResult])
 def cancel_run(
     run_id: str, run_queue: Annotated[RunQueue, Depends(get_run_queue)]
 ) -> dict[str, Any]:

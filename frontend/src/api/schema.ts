@@ -339,6 +339,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ArtifactDTO */
+        ArtifactDTO: {
+            /** Kind */
+            kind: string;
+            /** Name */
+            name: string;
+            /** Size */
+            size: number;
+            /** Stage */
+            stage?: string | null;
+        };
         /** AudioConfig */
         AudioConfig: {
             /**
@@ -367,6 +378,11 @@ export interface components {
             /** Files */
             files: string[];
         };
+        /** CancelResult */
+        CancelResult: {
+            /** Cancelled */
+            cancelled: boolean;
+        };
         /** Config */
         Config: {
             audio?: components["schemas"]["AudioConfig"];
@@ -376,6 +392,13 @@ export interface components {
             stages?: components["schemas"]["StagesConfig"];
             telegram?: components["schemas"]["TelegramConfig"];
             transcription?: components["schemas"]["TranscriptionConfig"];
+        };
+        /** CreateProject */
+        CreateProject: {
+            /** Icon */
+            icon?: string | null;
+            /** Title */
+            title: string;
         };
         /** CreateTitle */
         CreateTitle: {
@@ -397,6 +420,102 @@ export interface components {
             stage_overrides?: {
                 [key: string]: boolean;
             } | null;
+        };
+        /** Envelope[CancelResult] */
+        Envelope_CancelResult_: {
+            data?: components["schemas"]["CancelResult"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[Config] */
+        Envelope_Config_: {
+            data?: components["schemas"]["Config"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[NoneType] */
+        Envelope_NoneType_: {
+            /** Data */
+            data?: null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[ProjectDTO] */
+        Envelope_ProjectDTO_: {
+            data?: components["schemas"]["ProjectDTO"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[PromptDTO] */
+        Envelope_PromptDTO_: {
+            data?: components["schemas"]["PromptDTO"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[PutConfigResult] */
+        Envelope_PutConfigResult_: {
+            data?: components["schemas"]["PutConfigResult"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[RunDTO] */
+        Envelope_RunDTO_: {
+            data?: components["schemas"]["RunDTO"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[SetDTO] */
+        Envelope_SetDTO_: {
+            data?: components["schemas"]["SetDTO"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[SystemInfoDTO] */
+        Envelope_SystemInfoDTO_: {
+            data?: components["schemas"]["SystemInfoDTO"] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[list[ArtifactDTO]] */
+        Envelope_list_ArtifactDTO__: {
+            /** Data */
+            data?: components["schemas"]["ArtifactDTO"][] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[list[ProjectDTO]] */
+        Envelope_list_ProjectDTO__: {
+            /** Data */
+            data?: components["schemas"]["ProjectDTO"][] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[list[PromptDTO]] */
+        Envelope_list_PromptDTO__: {
+            /** Data */
+            data?: components["schemas"]["PromptDTO"][] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[list[RecordingDTO]] */
+        Envelope_list_RecordingDTO__: {
+            /** Data */
+            data?: components["schemas"]["RecordingDTO"][] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[list[RunDTO]] */
+        Envelope_list_RunDTO__: {
+            /** Data */
+            data?: components["schemas"]["RunDTO"][] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** Envelope[list[SetDTO]] */
+        Envelope_list_SetDTO__: {
+            /** Data */
+            data?: components["schemas"]["SetDTO"][] | null;
+            error?: components["schemas"]["ErrorBody"] | null;
+        };
+        /** ErrorBody */
+        ErrorBody: {
+            /** Code */
+            code: string;
+            /**
+             * Details
+             * @default {}
+             */
+            details: {
+                [key: string]: unknown;
+            };
+            /** Message */
+            message: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -464,6 +583,28 @@ export interface components {
              */
             summary_filename: string;
         };
+        /** ProjectDTO */
+        ProjectDTO: {
+            /** Icon */
+            icon?: string | null;
+            /** Id */
+            id: string;
+            /** Sets */
+            sets: components["schemas"]["SetDTO"][];
+            /** Slug */
+            slug: string;
+            /** Title */
+            title: string;
+        };
+        /** PromptDTO */
+        PromptDTO: {
+            /** Content */
+            content: string;
+            /** Name */
+            name: string;
+            /** Source */
+            source: string;
+        };
         /** PromptUpdate */
         PromptUpdate: {
             /** Content */
@@ -484,6 +625,57 @@ export interface components {
              */
             target_output_language: string;
         };
+        /** PutConfigResult */
+        PutConfigResult: {
+            /** Cascaded Off */
+            cascaded_off: string[];
+            config: components["schemas"]["Config"];
+        };
+        /** RecordingDTO */
+        RecordingDTO: {
+            /** Chunks */
+            chunks: string[];
+            /** Duration Seconds */
+            duration_seconds: number | null;
+            /** Normalized Name */
+            normalized_name: string;
+            /** Source Name */
+            source_name: string;
+        };
+        /** RunDTO */
+        RunDTO: {
+            /** Id */
+            id: string;
+            /** Position */
+            position: number;
+            /** Project */
+            project: string;
+            /** Set */
+            set_: string;
+            /** Stats */
+            stats: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: string;
+        };
+        /** SetDTO */
+        SetDTO: {
+            /** Id */
+            id: string;
+            /** Project Slug */
+            project_slug: string;
+            /** Recordings */
+            recordings: components["schemas"]["RecordingDTO"][];
+            /** Slug */
+            slug: string;
+            /** Stages */
+            stages: {
+                [key: string]: string;
+            };
+            /** Title */
+            title: string;
+        };
         /**
          * StageName
          * @enum {string}
@@ -495,6 +687,19 @@ export interface components {
             enabled?: {
                 [key: string]: boolean;
             };
+        };
+        /** SystemInfoDTO */
+        SystemInfoDTO: {
+            /** Current Model */
+            current_model: string;
+            /** Data Root */
+            data_root: string;
+            /** Llm Key Present */
+            llm_key_present: boolean;
+            /** Max Workers */
+            max_workers: number;
+            /** Whisper Models */
+            whisper_models: string[];
         };
         /** TelegramConfig */
         TelegramConfig: {
@@ -581,9 +786,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_Config_"];
                 };
             };
         };
@@ -607,9 +810,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_PutConfigResult_"];
                 };
             };
             /** @description Validation Error */
@@ -638,9 +839,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_Config_"];
                 };
             };
         };
@@ -682,9 +881,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_list_ProjectDTO__"];
                 };
             };
         };
@@ -698,7 +895,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateTitle"];
+                "application/json": components["schemas"]["CreateProject"];
             };
         };
         responses: {
@@ -708,9 +905,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_ProjectDTO_"];
                 };
             };
             /** @description Validation Error */
@@ -741,9 +936,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_ProjectDTO_"];
                 };
             };
             /** @description Validation Error */
@@ -774,9 +967,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_NoneType_"];
                 };
             };
             /** @description Validation Error */
@@ -807,9 +998,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_list_SetDTO__"];
                 };
             };
             /** @description Validation Error */
@@ -844,9 +1033,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_SetDTO_"];
                 };
             };
             /** @description Validation Error */
@@ -878,9 +1065,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_SetDTO_"];
                 };
             };
             /** @description Validation Error */
@@ -912,9 +1097,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_NoneType_"];
                 };
             };
             /** @description Validation Error */
@@ -946,9 +1129,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_list_ArtifactDTO__"];
                 };
             };
             /** @description Validation Error */
@@ -1046,9 +1227,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_list_RecordingDTO__"];
                 };
             };
             /** @description Validation Error */
@@ -1084,9 +1263,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_list_RecordingDTO__"];
                 };
             };
             /** @description Validation Error */
@@ -1119,9 +1296,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_NoneType_"];
                 };
             };
             /** @description Validation Error */
@@ -1150,9 +1325,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_list_PromptDTO__"];
                 };
             };
         };
@@ -1178,9 +1351,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_PromptDTO_"];
                 };
             };
             /** @description Validation Error */
@@ -1211,9 +1382,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_PromptDTO_"];
                 };
             };
             /** @description Validation Error */
@@ -1242,9 +1411,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_list_RunDTO__"];
                 };
             };
         };
@@ -1268,9 +1435,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_RunDTO_"];
                 };
             };
             /** @description Validation Error */
@@ -1301,9 +1466,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_RunDTO_"];
                 };
             };
             /** @description Validation Error */
@@ -1334,9 +1497,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_CancelResult_"];
                 };
             };
             /** @description Validation Error */
@@ -1396,9 +1557,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["Envelope_SystemInfoDTO_"];
                 };
             };
         };
