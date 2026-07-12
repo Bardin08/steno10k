@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shutil
 import sys
@@ -235,6 +236,23 @@ def cmd_status(args: argparse.Namespace, deps: Deps) -> int:
         if f.is_file() and f.name not in recorded and f.name != "manifest.json"
     )
     output.emit_status(s, artifacts, as_json=deps.json)
+    return ExitCode.OK
+
+
+# -- config ------------------------------------------------------------------
+
+
+def add_config(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    p = sub.add_parser("config", help="inspect configuration")
+    csub = p.add_subparsers(dest="config_cmd", required=True)
+    show = csub.add_parser("show", parents=[common_parser()], help="print resolved config")
+    show.set_defaults(func=cmd_config_show)
+
+
+def cmd_config_show(args: argparse.Namespace, deps: Deps) -> int:
+    cfg = deps.config_service.load()
+    llm_key_present = bool(os.environ.get(cfg.llm.api_key_env))
+    output.emit_config(cfg, llm_key_present, as_json=deps.json)
     return ExitCode.OK
 
 

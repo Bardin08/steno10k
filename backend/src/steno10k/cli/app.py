@@ -25,6 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     commands.add_recordings(sub)
     commands.add_status(sub)
     run.add_run(sub)
+    commands.add_config(sub)
     return parser
 
 
