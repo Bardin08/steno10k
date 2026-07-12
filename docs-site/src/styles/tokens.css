@@ -1,0 +1,29 @@
+/* Design tokens mirrored from landing/styles.css :root — keep in sync. */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap");
+
+:root {
+  --paper: #f6f5f2;
+  --surface: #ffffff;
+  --surface-sink: #efeeea;
+  --ink: #1a1917;
+  --ink-soft: #55524c;
+  --ink-faint: #8b877f;
+  --hairline: #e2e0da;
+  --hairline-strong: #cfccc4;
+
+  --accent: #3f6b52;
+  --accent-wash: #eef4ef;
+  --accent-ink: #2c4d3a;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-micro: 140ms;
+  --dur: 200ms;
+  --dur-lg: 280ms;
+
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-pill: 999px;
+
+  --shadow-soft: 0 1px 2px rgba(26, 25, 23, 0.04), 0 6px 16px rgba(26, 25, 23, 0.05);
+  --maxw: 1180px;
+}
