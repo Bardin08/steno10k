@@ -285,3 +285,33 @@ def test_make_llm_builds_client_when_enabled(monkeypatch: pytest.MonkeyPatch) ->
     cfg.llm = LLMConfig(enabled=True, api_key_env="OPENAI_API_KEY", model="gpt-x")
     client = _make_llm(cfg)
     assert isinstance(client, OpenAICompatibleClient)
+
+
+def test_full_registry_runs_stages_in_order(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from steno10k.api.stages import build_registry
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)  # LLM stages self-skip
+    storage = Storage(tmp_path)
+    storage.create_project("Law")
+    storage.create_set("law", "Week 1")  # empty set: stages no-op but run to completion
+    q = RunQueue(storage=storage, registry=build_registry())
+    run = q.enqueue(project="law", set_="week-1")
+    bus = q.get_bus(run.id)
+    started: list[str] = []
+    assert bus is not None
+    bus.subscribe(
+        lambda e: started.append(str(e.payload.get("stage")))
+        if e.kind == "stage_started"
+        else None
+    )
+    q.start()
+    try:
+        _wait(lambda: q.get(run.id).status == RunStatus.COMPLETED, timeout=10.0)
+        # stages that actually started must appear in canonical order
+        canonical = [str(n) for n in build_registry().names]
+        observed = [s for s in started if s in canonical]
+        assert observed == sorted(observed, key=canonical.index)
+    finally:
+        q.stop()
