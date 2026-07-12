@@ -57,6 +57,22 @@ jobs:
         working-directory: .
         run: git diff --exit-code openapi.json frontend/src/api/schema.ts
 
+  docs:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - run: npm ci
+      - name: Build docs (verifies MDX + links + search index)
+        run: npm run build
+
   docker:
     runs-on: ubuntu-latest
     steps:
