@@ -86,7 +86,7 @@ export function Sidebar() {
         pending={createProject.isPending}
         existingNames={(projects ?? []).map((p) => p.title)}
         onSubmit={(title) =>
-          createProject.mutate(title, {
+          createProject.mutate({ title }, {
             onSuccess: () => setProjectOpen(false),
             onError: reportError,
           })
