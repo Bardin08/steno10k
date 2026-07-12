@@ -7,13 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from steno10k.api.runq import RunQueue, RunStatus
+from steno10k.api.runq import RunQueue, RunStatus, _make_llm
 from steno10k.api.storage import Storage
-from steno10k.contracts.config import Config
+from steno10k.contracts.config import Config, LLMConfig
 from steno10k.contracts.names import StageName
 from steno10k.contracts.registry import StageRegistry
 from steno10k.contracts.stage import RunOptions, StageContext, StageResult
 from steno10k.contracts.status import StageStatus
+from steno10k.lib.llm import OpenAICompatibleClient
 
 
 def _wait(pred: Callable[[], bool], timeout: float = 2.0) -> None:
@@ -261,3 +262,26 @@ def test_force_threads_into_stage_context(tmp_path: Path) -> None:
         assert stage.seen == [True]
     finally:
         q.stop()
+
+
+def test_make_llm_returns_none_when_disabled() -> None:
+    cfg = Config()
+    cfg.llm.enabled = False
+    assert _make_llm(cfg) is None
+
+
+def test_make_llm_returns_none_when_key_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    cfg = Config()
+    cfg.llm = LLMConfig(enabled=True, api_key_env="OPENAI_API_KEY", model="gpt-x")
+    # missing key: OpenAICompatibleClient.__init__ raises RuntimeError, which
+    # _make_llm swallows into None so the run degrades gracefully.
+    assert _make_llm(cfg) is None
+
+
+def test_make_llm_builds_client_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    cfg = Config()
+    cfg.llm = LLMConfig(enabled=True, api_key_env="OPENAI_API_KEY", model="gpt-x")
+    client = _make_llm(cfg)
+    assert isinstance(client, OpenAICompatibleClient)
