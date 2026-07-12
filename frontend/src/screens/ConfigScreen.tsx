@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Button,
-  Checkbox,
   ErrorState,
   Input,
   Select,
@@ -12,6 +11,11 @@ import {
 import { ApiError } from "../api/client";
 import { useConfig, usePutConfig, useSystem } from "../api/hooks";
 import { STAGE_NAMES } from "../api/types";
+import {
+  addCustomProvider,
+  allProviders,
+  providerBaseUrl,
+} from "../app/llmProviders";
 
 type Cfg = Record<string, Record<string, unknown>>;
 
@@ -40,6 +44,10 @@ export function ConfigScreen() {
   const put = usePutConfig();
   const [draft, setDraft] = useState<Cfg | null>(null);
   const [section, setSection] = useState<SectionKey>("transcription");
+  const [providers, setProviders] = useState(() => allProviders());
+  const [addingProvider, setAddingProvider] = useState(false);
+  const [newProviderName, setNewProviderName] = useState("");
+  const [newProviderUrl, setNewProviderUrl] = useState("");
 
   useEffect(() => {
     if (data) setDraft(structuredClone(data) as Cfg);
@@ -135,26 +143,96 @@ export function ConfigScreen() {
 
           {section === "llm" && (
             <div className="flex flex-col gap-4">
-              <Input
-                label="LLM model"
-                value={String(llm.model ?? "")}
-                onChange={(e) => patch("llm", "model", e.target.value)}
-              />
-              <Input
-                label="Base URL"
-                value={String(llm.base_url ?? "")}
-                onChange={(e) => patch("llm", "base_url", e.target.value)}
-              />
-              <Input
-                label="API key env var"
-                value={String(llm.api_key_env ?? "")}
-                onChange={(e) => patch("llm", "api_key_env", e.target.value)}
-              />
-              <Checkbox
-                label="Enabled"
+              <Switch
+                label="Summarize with an LLM"
+                description="Runs the clean & summarize stages. Off = transcript only."
                 checked={Boolean(llm.enabled)}
-                onChange={(e) => patch("llm", "enabled", e.target.checked)}
+                onCheckedChange={(v) => patch("llm", "enabled", v)}
               />
+
+              <fieldset
+                disabled={!llm.enabled}
+                className="flex flex-col gap-4 disabled:opacity-50"
+              >
+                <Select
+                  label="Provider"
+                  value={
+                    providers.find((p) => p.baseUrl === llm.base_url)?.name ??
+                    ""
+                  }
+                  onValueChange={(name) =>
+                    patch("llm", "base_url", providerBaseUrl(name) ?? "")
+                  }
+                  options={providers.map((p) => ({ value: p.name }))}
+                />
+                {!addingProvider && (
+                  <button
+                    type="button"
+                    onClick={() => setAddingProvider(true)}
+                    className="self-start text-[13px] text-ink-faint hover:text-ink"
+                  >
+                    + Add custom endpoint…
+                  </button>
+                )}
+                {addingProvider && (
+                  <div className="flex flex-col gap-2 rounded-sm border border-hairline p-3">
+                    <Input
+                      label="Name"
+                      value={newProviderName}
+                      onChange={(e) => setNewProviderName(e.target.value)}
+                    />
+                    <Input
+                      label="URL"
+                      value={newProviderUrl}
+                      onChange={(e) => setNewProviderUrl(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        disabled={!newProviderName || !newProviderUrl}
+                        onClick={() => {
+                          const next = addCustomProvider({
+                            name: newProviderName,
+                            baseUrl: newProviderUrl,
+                          });
+                          setProviders([...next]);
+                          patch("llm", "base_url", newProviderUrl);
+                          setNewProviderName("");
+                          setNewProviderUrl("");
+                          setAddingProvider(false);
+                        }}
+                      >
+                        Add
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setAddingProvider(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <Input
+                  label="Model"
+                  value={String(llm.model ?? "")}
+                  onChange={(e) => patch("llm", "model", e.target.value)}
+                />
+                <Input
+                  label="Base URL"
+                  value={String(llm.base_url ?? "")}
+                  onChange={(e) => patch("llm", "base_url", e.target.value)}
+                />
+                <p className="text-[13px] text-ink-faint">
+                  API key read from{" "}
+                  <code className="font-mono">
+                    {String(llm.api_key_env ?? "")}
+                  </code>{" "}
+                  · {system.data?.llm_key_present ? "detected ✓" : "missing"}
+                </p>
+              </fieldset>
             </div>
           )}
 
