@@ -26,7 +26,7 @@ export function TabsTrigger({
         "-mb-px border-b-2 border-transparent py-2 text-sm text-ink-soft",
         "transition-colors duration-[var(--dur-micro)] ease-editorial hover:text-ink",
         "data-[state=active]:border-accent data-[state=active]:text-ink",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+        "focus-visible:outline-none focus-visible:text-ink focus-visible:border-accent",
         className,
       )}
       {...props}

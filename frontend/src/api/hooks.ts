@@ -57,10 +57,28 @@ export function useSystem() {
 export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (title: string) =>
+    mutationFn: (v: { title: string; icon?: string }) =>
       request<ProjectDTO>("/projects", {
         method: "POST",
-        body: JSON.stringify({ title }),
+        body: JSON.stringify(v),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.projects() }),
+  });
+}
+export function useDeleteProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (project: string) =>
+      request<null>(`/projects/${project}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.projects() }),
+  });
+}
+export function useDeleteSet(project: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (set: string) =>
+      request<null>(`/projects/${project}/sets/${set}`, {
+        method: "DELETE",
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.projects() }),
   });
@@ -116,7 +134,7 @@ export function useDeleteRecording(project: string, set: string) {
 export function useEnqueueRun() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { project: string; set: string }) =>
+    mutationFn: (v: { project: string; set: string; force?: boolean }) =>
       request<RunDTO>("/runs", { method: "POST", body: JSON.stringify(v) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.runs() }),
   });
