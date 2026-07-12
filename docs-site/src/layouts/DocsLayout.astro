@@ -47,5 +47,24 @@ function isCurrent(slug: string) {
         <slot />
       </main>
     </div>
+
+    <link href={`${base}/pagefind/pagefind-ui.css`} rel="stylesheet" />
+    <script is:inline define:vars={{ base }}>
+      window.addEventListener("DOMContentLoaded", () => {
+        const boot = () => {
+          if (!window.PagefindUI) return;
+          new window.PagefindUI({
+            element: "#search",
+            bundlePath: `${base}/pagefind/`,
+            showSubResults: true,
+            showImages: false,
+          });
+        };
+        const s = document.createElement("script");
+        s.src = `${base}/pagefind/pagefind-ui.js`;
+        s.onload = boot;
+        document.head.appendChild(s);
+      });
+    </script>
   </body>
 </html>
