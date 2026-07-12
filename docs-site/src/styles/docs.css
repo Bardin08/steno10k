@@ -103,6 +103,9 @@ body {
   width: min(460px, 92vw);
   max-height: min(70vh, 560px);
   overflow-y: auto;
+  /* Hide the scrollbar chrome while keeping the panel scrollable. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   padding: 14px 16px;
   background: var(--surface);
   border: 1px solid var(--hairline);
@@ -110,8 +113,17 @@ body {
   box-shadow: var(--shadow-soft);
   z-index: 60;
 }
+#search .pagefind-ui__drawer::-webkit-scrollbar { width: 0; height: 0; display: none; }
 /* Keep the pill input, but square off only the results panel corners. */
 #search .pagefind-ui__search-input { border-radius: var(--r-pill); }
+/* The "Clear" button is layered over the input's right end and inherits
+   Pagefind's 1px border + 12px radius. With the input styled as a pill those
+   edges no longer coincide and render as a doubled/overlaid border — strip the
+   button's own box so only the pill's border shows. */
+#search .pagefind-ui__search-clear {
+  border: none;
+  background: transparent;
+}
 /* Inset, on-brand focus ring — the default outline is drawn outside the pill
    and follows the radius, so it pokes past the edge and crosses the header. */
 #search .pagefind-ui__search-input:focus,
