@@ -369,7 +369,7 @@ test("Add custom endpoint modal validates the URL and adds a provider", async ()
 
   await user.type(within(dialog).getByLabelText("Name"), "My Endpoint");
   await user.type(within(dialog).getByLabelText("Base URL"), "test endpoint");
-  expect(within(dialog).getByText(/valid http/i)).toBeInTheDocument();
+  expect(within(dialog).getByText(/must start with http/i)).toBeInTheDocument();
   expect(addButton).toBeDisabled();
 
   await user.clear(within(dialog).getByLabelText("Base URL"));
@@ -377,7 +377,7 @@ test("Add custom endpoint modal validates the URL and adds a provider", async ()
     within(dialog).getByLabelText("Base URL"),
     "https://my-endpoint.example.com/v1",
   );
-  expect(within(dialog).queryByText(/valid http/i)).not.toBeInTheDocument();
+  expect(within(dialog).queryByText(/must start with http/i)).not.toBeInTheDocument();
   expect(addButton).not.toBeDisabled();
 
   await user.click(addButton);
