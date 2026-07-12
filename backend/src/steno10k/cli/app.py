@@ -21,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     commands.add_projects(sub)
     commands.add_sets(sub)
+    commands.add_import(sub)
     return parser
 
 

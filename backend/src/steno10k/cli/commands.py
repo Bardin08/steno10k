@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import argparse
 import re
+import shutil
+import sys
+from pathlib import Path
 
 from steno10k.api.storage import NotFound
 from steno10k.cli import output
 from steno10k.cli.context import Deps, ExitCode, common_parser
+from steno10k.contracts.domain import Recording
+from steno10k.lib.ingest import SUPPORTED_EXTENSIONS, normalized_filename
 
 _ICON_RE = re.compile(r"^[a-z][a-z0-9-]*$")
 
@@ -60,7 +65,7 @@ def cmd_projects_delete(args: argparse.Namespace, deps: Deps) -> int:
     try:
         deps.storage.delete_project(args.project)
     except NotFound as exc:
-        print(str(exc), file=__import__("sys").stderr)
+        print(str(exc), file=sys.stderr)
         return ExitCode.USAGE
     return ExitCode.OK
 
@@ -92,7 +97,7 @@ def cmd_sets_list(args: argparse.Namespace, deps: Deps) -> int:
     try:
         deps.storage.get_project(args.project)
     except NotFound as exc:
-        print(str(exc), file=__import__("sys").stderr)
+        print(str(exc), file=sys.stderr)
         return ExitCode.USAGE
     output.emit_sets(deps.storage.list_sets(args.project), as_json=deps.json)
     return ExitCode.OK
@@ -102,7 +107,7 @@ def cmd_sets_create(args: argparse.Namespace, deps: Deps) -> int:
     try:
         s = deps.storage.create_set(args.project, args.title)
     except NotFound as exc:
-        print(str(exc), file=__import__("sys").stderr)
+        print(str(exc), file=sys.stderr)
         return ExitCode.USAGE
     output.emit_set(s, as_json=deps.json)
     return ExitCode.OK
@@ -114,8 +119,49 @@ def cmd_sets_delete(args: argparse.Namespace, deps: Deps) -> int:
     try:
         deps.storage.delete_set(args.project, args.set_)
     except NotFound as exc:
-        print(str(exc), file=__import__("sys").stderr)
+        print(str(exc), file=sys.stderr)
         return ExitCode.USAGE
+    return ExitCode.OK
+
+
+# -- import ------------------------------------------------------------------
+
+
+def add_import(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    p = sub.add_parser("import", parents=[common_parser()], help="import audio files into a set")
+    p.add_argument("project")
+    p.add_argument("set_", metavar="SET")
+    p.add_argument("files", nargs="+", metavar="FILE")
+    p.set_defaults(func=cmd_import)
+
+
+def cmd_import(args: argparse.Namespace, deps: Deps) -> int:
+    try:
+        deps.storage.get_set(args.project, args.set_)
+    except NotFound as exc:
+        print(str(exc), file=sys.stderr)
+        return ExitCode.USAGE
+    set_dir = deps.storage.set_dir(args.project, args.set_)
+
+    sources = [Path(f) for f in args.files]
+    for src in sources:
+        if src.suffix.lower() not in SUPPORTED_EXTENSIONS:
+            print(f"unsupported file type: {src.name}", file=sys.stderr)
+            return ExitCode.USAGE
+        if not src.is_file():
+            print(f"file not found: {src}", file=sys.stderr)
+            return ExitCode.USAGE
+
+    existing = {p.name for p in set_dir.iterdir()}
+    recordings: list[Recording] = []
+    for src in sources:
+        norm = normalized_filename(src.name, existing)
+        existing.add(norm)
+        shutil.copyfile(src, set_dir / norm)
+        recordings.append(Recording(source_name=src.name, normalized_name=norm))
+
+    deps.storage.add_recordings(args.project, args.set_, recordings)
+    output.emit_recordings(recordings, as_json=deps.json)
     return ExitCode.OK
 
 
