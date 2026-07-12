@@ -2,6 +2,14 @@ from __future__ import annotations
 
 from steno10k.contracts.names import StageName
 from steno10k.contracts.registry import StageRegistry
+from steno10k.stages.bundle import BundleStage
+from steno10k.stages.chunk import ChunkStage
+from steno10k.stages.clean import CleanStage
+from steno10k.stages.merge import MergeStage
+from steno10k.stages.normalize import NormalizeStage
+from steno10k.stages.notify import NotifyStage
+from steno10k.stages.summarize import SummarizeStage
+from steno10k.stages.transcribe import TranscribeStage
 
 # Canonical stage dependency graph. Used now by the config cascade (api/routers/config.py
 # resolves which stages get cascaded off when a dependency is disabled). Task 9 adds
@@ -32,9 +40,18 @@ STAGE_DEPS: dict[StageName, list[StageName]] = {
 def build_registry() -> StageRegistry:
     """Assemble the concrete `StageRegistry` the run queue executes.
 
-    Empty/stub for F2: no concrete `Stage` implementations exist yet.
-    Real stages register here during fan-out (one module per stage under
-    `api/`, imported and appended to this list) — the run worker is already
-    wired to execute whatever this returns.
+    Stages are listed in canonical `StageName` order; `StageRegistry` validates
+    that every `depends_on` edge points at an earlier stage.
     """
-    return StageRegistry([])
+    return StageRegistry(
+        [
+            NormalizeStage(),
+            ChunkStage(),
+            TranscribeStage(),
+            CleanStage(),
+            MergeStage(),
+            SummarizeStage(),
+            BundleStage(),
+            NotifyStage(),
+        ]
+    )
