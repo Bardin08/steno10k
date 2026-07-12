@@ -1,29 +1,78 @@
 import { useEffect, useState } from "react";
 import {
   Button,
-  Checkbox,
   ErrorState,
   Input,
+  Modal,
   Select,
   Skeleton,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
+  Switch,
   toast,
 } from "../components";
 import { ApiError } from "../api/client";
 import { useConfig, usePutConfig, useSystem } from "../api/hooks";
 import { STAGE_NAMES } from "../api/types";
+import {
+  addCustomProvider,
+  allProviders,
+  providerBaseUrl,
+} from "../app/llmProviders";
+import { resolveEnabledStages } from "../app/stageDeps";
+
+// Require a syntactically valid http(s):// URL with a host and no whitespace —
+// enough to reject non-links like "https://p1 p1 ska", but we do NOT verify the
+// endpoint is reachable or otherwise "correct".
+function isValidHttpUrl(value: string): boolean {
+  const v = value.trim();
+  if (!/^https?:\/\//i.test(v) || /\s/.test(v)) return false;
+  try {
+    return Boolean(new URL(v).hostname);
+  } catch {
+    return false;
+  }
+}
 
 type Cfg = Record<string, Record<string, unknown>>;
+
+const SECTIONS = [
+  { key: "transcription", label: "Transcription" },
+  { key: "llm", label: "LLM" },
+  { key: "audio", label: "Audio & Output" },
+  { key: "stages", label: "Stages" },
+] as const;
+
+type SectionKey = (typeof SECTIONS)[number]["key"];
+
+const HELP: Record<SectionKey, string> = {
+  transcription:
+    "Pick the Whisper model used to transcribe audio. Larger models are more accurate but slower and use more memory.",
+  llm: "Configure the LLM used for the clean & summarize stages. Point it at any OpenAI-compatible endpoint.",
+  audio:
+    "Controls how source audio is chunked before transcription, and where the generated summary and bundle files land.",
+  stages:
+    "Turn individual pipeline stages on or off. Disabling a stage skips it for every run.",
+};
+
+// Presentational grouping of the pipeline stages into human-readable phases, in
+// run order. UI-only — the actual order/behaviour is defined by STAGE_DEPS, not
+// this. Every StageName must appear in exactly one group.
+const STAGE_GROUPS: { label: string; stages: string[] }[] = [
+  { label: "Prepare audio", stages: ["normalize", "chunk"] },
+  { label: "Transcribe", stages: ["transcribe", "clean", "merge"] },
+  { label: "Summarize", stages: ["summarize"] },
+  { label: "Deliver", stages: ["bundle", "notify"] },
+];
 
 export function ConfigScreen() {
   const { data, isLoading, isError, refetch } = useConfig();
   const system = useSystem();
   const put = usePutConfig();
   const [draft, setDraft] = useState<Cfg | null>(null);
-  const [tab, setTab] = useState("transcription");
+  const [section, setSection] = useState<SectionKey>("transcription");
+  const [providers, setProviders] = useState(() => allProviders());
+  const [addingProvider, setAddingProvider] = useState(false);
+  const [newProviderName, setNewProviderName] = useState("");
+  const [newProviderUrl, setNewProviderUrl] = useState("");
 
   useEffect(() => {
     if (data) setDraft(structuredClone(data) as Cfg);
@@ -35,7 +84,7 @@ export function ConfigScreen() {
       <ErrorState message="Couldn't load config." onRetry={() => refetch()} />
     );
 
-  const section = (name: string) =>
+  const sectionValue = (name: string) =>
     (draft[name] ?? {}) as Record<string, unknown>;
   function patch(sectionName: string, key: string, value: unknown) {
     setDraft((d) => ({
@@ -43,7 +92,7 @@ export function ConfigScreen() {
       [sectionName]: { ...(d![sectionName] ?? {}), [key]: value },
     }));
   }
-  const stagesEnabled = (section("stages").enabled ?? {}) as Record<
+  const stagesEnabled = (sectionValue("stages").enabled ?? {}) as Record<
     string,
     boolean
   >;
@@ -56,15 +105,51 @@ export function ConfigScreen() {
       },
     }));
   }
+  const stageFlags = Object.fromEntries(
+    STAGE_NAMES.map((s) => [s, stagesEnabled[s] !== false]),
+  );
+  const { enabled: enabledStages, cascaded } = resolveEnabledStages(stageFlags);
 
-  const tr = section("transcription");
-  const llm = section("llm");
-  const audio = section("audio");
-  const output = section("output");
+  const tr = sectionValue("transcription");
+  const llm = sectionValue("llm");
+  const audio = sectionValue("audio");
+  const output = sectionValue("output");
   const models = system.data?.whisper_models ?? [String(tr.model ?? "")];
 
+  const trimmedProviderName = newProviderName.trim();
+  const trimmedProviderUrl = newProviderUrl.trim();
+  const providerNameError =
+    newProviderName !== "" && trimmedProviderName === ""
+      ? "Name is required."
+      : undefined;
+  const providerUrlError =
+    trimmedProviderUrl !== "" && !isValidHttpUrl(trimmedProviderUrl)
+      ? "Enter a valid http(s):// URL."
+      : undefined;
+  const providerFormValid =
+    trimmedProviderName !== "" &&
+    trimmedProviderUrl !== "" &&
+    isValidHttpUrl(trimmedProviderUrl);
+
+  function closeProviderModal() {
+    setAddingProvider(false);
+    setNewProviderName("");
+    setNewProviderUrl("");
+  }
+
+  function submitProvider() {
+    if (!providerFormValid) return;
+    const next = addCustomProvider({
+      name: trimmedProviderName,
+      baseUrl: trimmedProviderUrl,
+    });
+    setProviders([...next]);
+    patch("llm", "base_url", trimmedProviderUrl);
+    closeProviderModal();
+  }
+
   return (
-    <section className="flex max-w-[640px] flex-col gap-8">
+    <section className="flex max-w-[960px] flex-col gap-8">
       <header>
         <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
           Settings
@@ -72,118 +157,192 @@ export function ConfigScreen() {
         <h1 className="text-4xl text-ink">Config</h1>
       </header>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="transcription">Transcription</TabsTrigger>
-          <TabsTrigger value="llm">LLM</TabsTrigger>
-          <TabsTrigger value="audio">Audio &amp; Output</TabsTrigger>
-          <TabsTrigger value="stages">Stages</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="transcription">
-          <div className="flex flex-col gap-4">
-            <Select
-              label="Whisper model"
-              value={String(tr.model ?? "")}
-              onValueChange={(v) => patch("transcription", "model", v)}
-              options={models.map((m) => ({ value: m }))}
-            />
-            <Input
-              label="Device"
-              value={String(tr.device ?? "")}
-              onChange={(e) => patch("transcription", "device", e.target.value)}
-            />
-            <Input
-              label="Compute type"
-              value={String(tr.compute_type ?? "")}
-              onChange={(e) =>
-                patch("transcription", "compute_type", e.target.value)
-              }
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="llm">
-          <div className="flex flex-col gap-4">
-            <Input
-              label="LLM model"
-              value={String(llm.model ?? "")}
-              onChange={(e) => patch("llm", "model", e.target.value)}
-            />
-            <Input
-              label="Base URL"
-              value={String(llm.base_url ?? "")}
-              onChange={(e) => patch("llm", "base_url", e.target.value)}
-            />
-            <Input
-              label="API key env var"
-              value={String(llm.api_key_env ?? "")}
-              onChange={(e) => patch("llm", "api_key_env", e.target.value)}
-            />
-            <Checkbox
-              label="Enabled"
-              checked={Boolean(llm.enabled)}
-              onChange={(e) => patch("llm", "enabled", e.target.checked)}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="audio">
-          <div className="flex flex-col gap-4">
-            <Input
-              label="Chunk seconds"
-              type="number"
-              value={String(audio.chunk_seconds ?? "")}
-              onChange={(e) =>
-                patch(
-                  "audio",
-                  "chunk_seconds",
-                  e.target.value === "" ? undefined : Number(e.target.value),
-                )
-              }
-            />
-            <Input
-              label="Overlap seconds"
-              type="number"
-              value={String(audio.overlap_seconds ?? "")}
-              onChange={(e) =>
-                patch(
-                  "audio",
-                  "overlap_seconds",
-                  e.target.value === "" ? undefined : Number(e.target.value),
-                )
-              }
-            />
-            <Input
-              label="Summary filename"
-              value={String(output.summary_filename ?? "")}
-              onChange={(e) =>
-                patch("output", "summary_filename", e.target.value)
-              }
-            />
-            <Checkbox
-              label="Save bundle .docx"
-              checked={Boolean(output.save_bundle_docx)}
-              onChange={(e) =>
-                patch("output", "save_bundle_docx", e.target.checked)
-              }
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="stages">
-          <div className="grid grid-cols-2 gap-3">
-            {STAGE_NAMES.map((s) => (
-              <Checkbox
-                key={s}
-                label={s}
-                checked={stagesEnabled[s] !== false}
-                onChange={(e) => toggleStage(s, e.target.checked)}
-              />
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-[auto_2fr_1fr]">
+        <aside className="order-2 md:order-1">
+          <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+            {SECTIONS.map((s) => (
+              <li key={s.key} className="md:w-full">
+                <button
+                  type="button"
+                  aria-current={section === s.key}
+                  onClick={() => setSection(s.key)}
+                  className={`box-border block whitespace-nowrap rounded-sm border-l-2 px-3 py-1.5 pl-[10px] text-left text-sm font-medium transition-colors duration-[var(--dur-micro)] ease-editorial md:w-full ${
+                    section === s.key
+                      ? "border-accent bg-accent-wash text-accent-ink"
+                      : "border-transparent text-ink-soft hover:text-ink"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              </li>
             ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+          </ul>
+        </aside>
+
+        <div
+          role="region"
+          aria-label={`${SECTIONS.find((s) => s.key === section)?.label} help`}
+          className="order-1 flex flex-col gap-2 self-start rounded-md border border-hairline bg-surface p-4 md:order-3"
+        >
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+            Help
+          </p>
+          <p className="text-sm text-ink-soft">{HELP[section]}</p>
+        </div>
+
+        <div className="order-3 md:order-2">
+          {section === "transcription" && (
+            <div className="flex flex-col gap-4">
+              <Select
+                label="Whisper model"
+                value={String(tr.model ?? "")}
+                onValueChange={(v) => patch("transcription", "model", v)}
+                options={models.map((m) => ({ value: m }))}
+              />
+            </div>
+          )}
+
+          {section === "llm" && (
+            <div className="flex flex-col gap-4">
+              <Switch
+                label="Summarize with an LLM"
+                description="Runs the clean & summarize stages. Off = transcript only."
+                checked={Boolean(llm.enabled)}
+                onCheckedChange={(v) => patch("llm", "enabled", v)}
+              />
+
+              <fieldset
+                disabled={!llm.enabled}
+                className="flex flex-col gap-4 disabled:opacity-50"
+              >
+                <Select
+                  label="Provider"
+                  value={
+                    providers.find((p) => p.baseUrl === llm.base_url)?.name ??
+                    ""
+                  }
+                  onValueChange={(name) =>
+                    patch("llm", "base_url", providerBaseUrl(name) ?? "")
+                  }
+                  options={providers.map((p) => ({ value: p.name }))}
+                />
+                <button
+                  type="button"
+                  onClick={() => setAddingProvider(true)}
+                  className="self-start text-[13px] text-ink-faint hover:text-ink"
+                >
+                  + Add custom endpoint…
+                </button>
+
+                <Input
+                  label="Model"
+                  value={String(llm.model ?? "")}
+                  onChange={(e) => patch("llm", "model", e.target.value)}
+                />
+                <Input
+                  label="Base URL"
+                  value={String(llm.base_url ?? "")}
+                  onChange={(e) => patch("llm", "base_url", e.target.value)}
+                />
+                <p className="text-[13px] text-ink-faint">
+                  API key read from{" "}
+                  <code className="font-mono">
+                    {String(llm.api_key_env ?? "")}
+                  </code>{" "}
+                  · {system.data?.llm_key_present ? "detected ✓" : "missing"}
+                </p>
+              </fieldset>
+            </div>
+          )}
+
+          {section === "audio" && (
+            <div className="flex flex-col gap-4">
+              <Input
+                label="Chunk seconds"
+                type="number"
+                value={String(audio.chunk_seconds ?? "")}
+                onChange={(e) =>
+                  patch(
+                    "audio",
+                    "chunk_seconds",
+                    e.target.value === "" ? undefined : Number(e.target.value),
+                  )
+                }
+              />
+              <Input
+                label="Overlap seconds"
+                type="number"
+                value={String(audio.overlap_seconds ?? "")}
+                onChange={(e) =>
+                  patch(
+                    "audio",
+                    "overlap_seconds",
+                    e.target.value === "" ? undefined : Number(e.target.value),
+                  )
+                }
+              />
+              <div>
+                <label
+                  htmlFor="summary-filename-stem"
+                  className="mb-1.5 block text-sm font-medium text-ink"
+                >
+                  Summary filename
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    id="summary-filename-stem"
+                    value={String(output.summary_filename ?? "").replace(
+                      /\.md$/i,
+                      "",
+                    )}
+                    onChange={(e) => {
+                      const stem =
+                        e.target.value.replace(/\.md$/i, "").trim() ||
+                        "summary";
+                      patch("output", "summary_filename", `${stem}.md`);
+                    }}
+                  />
+                  <span className="font-mono text-sm text-ink-faint">.md</span>
+                </div>
+              </div>
+              <Switch
+                label="Save bundle .docx"
+                checked={Boolean(output.save_bundle_docx)}
+                onCheckedChange={(v) => patch("output", "save_bundle_docx", v)}
+              />
+            </div>
+          )}
+
+          {section === "stages" && (
+            <div className="flex flex-col gap-5">
+              {STAGE_GROUPS.map((group) => (
+                <div key={group.label}>
+                  <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+                    {group.label}
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    {group.stages.map((s) => (
+                      <div key={s} className="flex items-center gap-1.5">
+                        <Switch
+                          label={s}
+                          checked={enabledStages.has(s)}
+                          disabled={s in cascaded}
+                          onCheckedChange={(v) => toggleStage(s, v)}
+                        />
+                        {s in cascaded && (
+                          <span className="text-[11px] text-ink-faint">
+                            · needs {cascaded[s]}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       <div>
         <Button
@@ -199,6 +358,41 @@ export function ConfigScreen() {
           Save config
         </Button>
       </div>
+
+      <Modal
+        open={addingProvider}
+        onOpenChange={(open) => {
+          if (!open) closeProviderModal();
+        }}
+        title="Add custom endpoint"
+      >
+        <div className="flex flex-col gap-4">
+          <Input
+            label="Name"
+            value={newProviderName}
+            error={providerNameError}
+            onChange={(e) => setNewProviderName(e.target.value)}
+          />
+          <Input
+            label="Base URL"
+            value={newProviderUrl}
+            error={providerUrlError}
+            onChange={(e) => setNewProviderUrl(e.target.value)}
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={closeProviderModal}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={!providerFormValid}
+              onClick={submitProvider}
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }

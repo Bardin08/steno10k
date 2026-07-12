@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import { makeQueryClient } from "../app/queryClient";
@@ -49,15 +49,355 @@ test("renders transcription, llm, and per-stage toggles from config", async () =
 
   const user = userEvent.setup();
   renderConfig();
-  // Default tab: Transcription.
+  // Default section: Transcription.
   expect(screen.getByLabelText(/whisper model/i)).toBeInTheDocument();
 
-  // LLM tab.
-  await user.click(screen.getByRole("tab", { name: "LLM" }));
-  expect(screen.getByLabelText(/llm model/i)).toBeInTheDocument();
+  // LLM section.
+  await user.click(screen.getByRole("button", { name: "LLM" }));
+  expect(screen.getByLabelText(/model/i)).toBeInTheDocument();
 
-  // Stages tab: per-stage checkboxes reflect config (absent key = enabled).
-  await user.click(screen.getByRole("tab", { name: "Stages" }));
-  expect(screen.getByLabelText("transcribe")).toBeChecked();
-  expect(screen.getByLabelText("notify")).not.toBeChecked();
+  // Stages section: per-stage switches reflect config (absent key = enabled).
+  await user.click(screen.getByRole("button", { name: "Stages" }));
+  expect(screen.getByRole("switch", { name: "transcribe" })).toBeChecked();
+  expect(screen.getByRole("switch", { name: "notify" })).not.toBeChecked();
+  // Stages are grouped by phase, in run order.
+  expect(screen.getByText("Prepare audio")).toBeInTheDocument();
+  expect(screen.getByText("Transcribe")).toBeInTheDocument();
+  expect(screen.getByText("Deliver")).toBeInTheDocument();
+});
+
+test("vertical nav renders all four sections and a help region is present", () => {
+  vi.spyOn(hooks, "usePutConfig").mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.usePutConfig>);
+  vi.spyOn(hooks, "useSystem").mockReturnValue({
+    data: {
+      whisper_models: ["small", "large-v3"],
+      current_model: "small",
+      max_workers: 4,
+      data_root: "/data",
+      llm_key_present: true,
+    },
+    isLoading: false,
+  } as unknown as ReturnType<typeof hooks.useSystem>);
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      transcription: { model: "small" },
+      llm: {
+        model: "gpt-4o",
+        base_url: "",
+        api_key_env: "OPENAI_API_KEY",
+        enabled: true,
+      },
+      audio: { chunk_seconds: 600, overlap_seconds: 15 },
+      output: { save_bundle_docx: true, summary_filename: "summary.md" },
+      stages: { enabled: { transcribe: true, notify: false } },
+    },
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+
+  renderConfig();
+
+  for (const label of ["Transcription", "LLM", "Audio & Output", "Stages"]) {
+    expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+  }
+  expect(screen.getByRole("button", { name: "Transcription" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  expect(screen.getByRole("region", { name: /help/i })).toBeInTheDocument();
+});
+
+test("transcription section drops Device/Compute type; filename stem locks .md; switches replace checkboxes", async () => {
+  const mutate = vi.fn();
+  vi.spyOn(hooks, "usePutConfig").mockReturnValue({
+    mutate,
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.usePutConfig>);
+  vi.spyOn(hooks, "useSystem").mockReturnValue({
+    data: {
+      whisper_models: ["small", "large-v3"],
+      current_model: "small",
+      max_workers: 4,
+      data_root: "/data",
+      llm_key_present: true,
+    },
+    isLoading: false,
+  } as unknown as ReturnType<typeof hooks.useSystem>);
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      transcription: { model: "small" },
+      llm: {
+        model: "gpt-4o",
+        base_url: "",
+        api_key_env: "OPENAI_API_KEY",
+        enabled: true,
+      },
+      audio: { chunk_seconds: 600, overlap_seconds: 15 },
+      output: { save_bundle_docx: true, summary_filename: "summary.md" },
+      stages: { enabled: { transcribe: true, notify: false } },
+    },
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+
+  const user = userEvent.setup();
+  renderConfig();
+
+  // Transcription: Device / Compute type inputs are gone.
+  expect(screen.queryByLabelText(/^device$/i)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/compute type/i)).not.toBeInTheDocument();
+
+  // Audio & Output: filename stem is editable, ".md" suffix is static.
+  await user.click(screen.getByRole("button", { name: "Audio & Output" }));
+  const stemInput = screen.getByLabelText(/summary filename/i);
+  expect(stemInput).toHaveValue("summary");
+  expect(screen.getByText(".md")).toBeInTheDocument();
+  // Entering a value that already ends in ".md" must not double the suffix.
+  fireEvent.change(stemInput, { target: { value: "notes.md" } });
+
+  const bundleSwitch = screen.getByRole("switch", {
+    name: "Save bundle .docx",
+  });
+  expect(bundleSwitch).toBeChecked();
+  await user.click(bundleSwitch);
+
+  await user.click(screen.getByRole("button", { name: "Stages" }));
+  const transcribeSwitch = screen.getByRole("switch", { name: "transcribe" });
+  expect(transcribeSwitch).toBeChecked();
+  await user.click(transcribeSwitch);
+
+  await user.click(screen.getByRole("button", { name: "Save config" }));
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  const saved = mutate.mock.calls[0][0];
+  expect(saved.output.summary_filename).toBe("notes.md");
+  expect(saved.output.save_bundle_docx).toBe(false);
+  expect(saved.stages.enabled.transcribe).toBe(false);
+});
+
+test("clearing the filename stem saves the default summary.md, not .md", async () => {
+  const mutate = vi.fn();
+  vi.spyOn(hooks, "usePutConfig").mockReturnValue({
+    mutate,
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.usePutConfig>);
+  vi.spyOn(hooks, "useSystem").mockReturnValue({
+    data: {
+      whisper_models: ["small", "large-v3"],
+      current_model: "small",
+      max_workers: 4,
+      data_root: "/data",
+      llm_key_present: true,
+    },
+    isLoading: false,
+  } as unknown as ReturnType<typeof hooks.useSystem>);
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      transcription: { model: "small" },
+      llm: {
+        model: "gpt-4o",
+        base_url: "",
+        api_key_env: "OPENAI_API_KEY",
+        enabled: true,
+      },
+      audio: { chunk_seconds: 600, overlap_seconds: 15 },
+      output: { save_bundle_docx: true, summary_filename: "summary.md" },
+      stages: { enabled: { transcribe: true, notify: false } },
+    },
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+
+  const user = userEvent.setup();
+  renderConfig();
+
+  await user.click(screen.getByRole("button", { name: "Audio & Output" }));
+  fireEvent.change(screen.getByLabelText(/summary filename/i), {
+    target: { value: "" },
+  });
+  await user.click(screen.getByRole("button", { name: "Save config" }));
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  expect(mutate.mock.calls[0][0].output.summary_filename).toBe("summary.md");
+});
+
+test("LLM section: master switch, provider dropdown auto-fills base URL, no api key env input, key status line", async () => {
+  vi.spyOn(hooks, "usePutConfig").mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.usePutConfig>);
+  vi.spyOn(hooks, "useSystem").mockReturnValue({
+    data: {
+      whisper_models: ["small", "large-v3"],
+      current_model: "small",
+      max_workers: 4,
+      data_root: "/data",
+      llm_key_present: true,
+    },
+    isLoading: false,
+  } as unknown as ReturnType<typeof hooks.useSystem>);
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      transcription: { model: "small" },
+      llm: {
+        model: "gpt-4o",
+        base_url: "",
+        api_key_env: "OPENAI_API_KEY",
+        enabled: true,
+      },
+      audio: { chunk_seconds: 600, overlap_seconds: 15 },
+      output: { save_bundle_docx: true, summary_filename: "summary.md" },
+      stages: { enabled: { transcribe: true, notify: false } },
+    },
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+
+  const user = userEvent.setup();
+  renderConfig();
+  await user.click(screen.getByRole("button", { name: "LLM" }));
+
+  const masterSwitch = screen.getByRole("switch", {
+    name: /summarize with an llm/i,
+  });
+  expect(masterSwitch).toBeChecked();
+
+  await user.click(screen.getByRole("combobox", { name: /provider/i }));
+  await user.click(screen.getByRole("option", { name: "OpenAI" }));
+  expect(screen.getByLabelText(/base url/i)).toHaveValue(
+    "https://api.openai.com/v1",
+  );
+
+  expect(screen.queryByLabelText(/api key env var/i)).not.toBeInTheDocument();
+  expect(screen.getByText(/OPENAI_API_KEY/)).toBeInTheDocument();
+  expect(screen.getByText(/detected/i)).toBeInTheDocument();
+
+  await user.click(masterSwitch);
+  expect(masterSwitch).not.toBeChecked();
+});
+
+test("Stages section: disabling transcribe cascade-disables dependent switches", async () => {
+  vi.spyOn(hooks, "usePutConfig").mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.usePutConfig>);
+  vi.spyOn(hooks, "useSystem").mockReturnValue({
+    data: {
+      whisper_models: ["small", "large-v3"],
+      current_model: "small",
+      max_workers: 4,
+      data_root: "/data",
+      llm_key_present: true,
+    },
+    isLoading: false,
+  } as unknown as ReturnType<typeof hooks.useSystem>);
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      transcription: { model: "small" },
+      llm: {
+        model: "gpt-4o",
+        base_url: "",
+        api_key_env: "OPENAI_API_KEY",
+        enabled: true,
+      },
+      audio: { chunk_seconds: 600, overlap_seconds: 15 },
+      output: { save_bundle_docx: true, summary_filename: "summary.md" },
+      stages: { enabled: {} },
+    },
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+
+  const user = userEvent.setup();
+  renderConfig();
+  await user.click(screen.getByRole("button", { name: "Stages" }));
+
+  const transcribeSwitch = screen.getByRole("switch", { name: "transcribe" });
+  expect(transcribeSwitch).toBeChecked();
+  await user.click(transcribeSwitch);
+  expect(transcribeSwitch).not.toBeChecked();
+
+  const cleanSwitch = screen.getByRole("switch", { name: "clean" });
+  const summarizeSwitch = screen.getByRole("switch", { name: "summarize" });
+  expect(cleanSwitch).toBeDisabled();
+  expect(cleanSwitch).not.toBeChecked();
+  expect(summarizeSwitch).toBeDisabled();
+  expect(summarizeSwitch).not.toBeChecked();
+});
+
+test("Add custom endpoint modal validates the URL and adds a provider", async () => {
+  vi.spyOn(hooks, "usePutConfig").mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.usePutConfig>);
+  vi.spyOn(hooks, "useSystem").mockReturnValue({
+    data: {
+      whisper_models: ["small", "large-v3"],
+      current_model: "small",
+      max_workers: 4,
+      data_root: "/data",
+      llm_key_present: true,
+    },
+    isLoading: false,
+  } as unknown as ReturnType<typeof hooks.useSystem>);
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      transcription: { model: "small" },
+      llm: {
+        model: "gpt-4o",
+        base_url: "",
+        api_key_env: "OPENAI_API_KEY",
+        enabled: true,
+      },
+      audio: { chunk_seconds: 600, overlap_seconds: 15 },
+      output: { save_bundle_docx: true, summary_filename: "summary.md" },
+      stages: { enabled: {} },
+    },
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+
+  const user = userEvent.setup();
+  renderConfig();
+  await user.click(screen.getByRole("button", { name: "LLM" }));
+  await user.click(
+    screen.getByRole("button", { name: /add custom endpoint/i }),
+  );
+
+  const dialog = screen.getByRole("dialog", { name: "Add custom endpoint" });
+  const addButton = within(dialog).getByRole("button", { name: "Add" });
+  expect(addButton).toBeDisabled();
+
+  await user.type(within(dialog).getByLabelText("Name"), "My Endpoint");
+  await user.type(within(dialog).getByLabelText("Base URL"), "test endpoint");
+  expect(within(dialog).getByText(/valid http/i)).toBeInTheDocument();
+  expect(addButton).toBeDisabled();
+
+  // Has the http(s):// prefix but isn't a real URL (spaces) — still rejected.
+  await user.clear(within(dialog).getByLabelText("Base URL"));
+  await user.type(
+    within(dialog).getByLabelText("Base URL"),
+    "https://p1 p1 ska",
+  );
+  expect(within(dialog).getByText(/valid http/i)).toBeInTheDocument();
+  expect(addButton).toBeDisabled();
+
+  await user.clear(within(dialog).getByLabelText("Base URL"));
+  await user.type(
+    within(dialog).getByLabelText("Base URL"),
+    "https://my-endpoint.example.com/v1",
+  );
+  expect(within(dialog).queryByText(/valid http/i)).not.toBeInTheDocument();
+  expect(addButton).not.toBeDisabled();
+
+  await user.click(addButton);
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("combobox", { name: /provider/i }));
+  expect(
+    screen.getByRole("option", { name: "My Endpoint" }),
+  ).toBeInTheDocument();
 });
