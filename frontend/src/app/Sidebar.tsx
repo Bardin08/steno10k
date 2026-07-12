@@ -85,9 +85,10 @@ export function Sidebar() {
         submitLabel="Create project"
         pending={createProject.isPending}
         existingNames={(projects ?? []).map((p) => p.title)}
-        onSubmit={(title) =>
+        withIconPicker
+        onSubmit={(title, icon) =>
           createProject.mutate(
-            { title },
+            { title, icon },
             {
               onSuccess: () => setProjectOpen(false),
               onError: reportError,

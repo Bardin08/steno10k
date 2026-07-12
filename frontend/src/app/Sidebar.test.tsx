@@ -76,7 +76,10 @@ test("the new-project dialog submits the typed title", () => {
   });
   fireEvent.click(screen.getByRole("button", { name: /create project/i }));
 
-  expect(mutate).toHaveBeenCalledWith({ title: "Con Law" }, expect.anything());
+  expect(mutate).toHaveBeenCalledWith(
+    { title: "Con Law", icon: "folder" },
+    expect.anything(),
+  );
 });
 
 test("blocks creating a project whose name already exists", () => {
