@@ -1,0 +1,96 @@
+---
+layout: ../layouts/DocsLayout.astro
+title: CLI
+---
+
+# CLI
+
+`steno10k` is a terminal driver over the same on-disk store the app uses. It
+manages projects, sets and recordings, and runs the pipeline — with per-run
+stage scoping the web UI does not expose.
+
+## Install & invoke
+
+The CLI ships with the backend package. Inside the container or a local
+checkout:
+
+```bash
+steno10k --help
+# or, equivalently:
+python -m steno10k --help
+```
+
+The store location resolves the same way as the server: the `--data-root`
+flag, else `$STENO10K_DATA_ROOT`, else `./data`. Point the CLI and the
+container at the same volume and they share one store.
+
+```bash
+export STENO10K_DATA_ROOT=/data
+```
+
+## Commands
+
+Set-scoped commands take **two positionals, `PROJECT SET`** (both slugs) —
+different projects may hold sets with the same slug, so both are required.
+
+```bash
+steno10k projects list
+steno10k projects create "Constitutional Law" --icon book
+steno10k projects delete con-law -y
+
+steno10k sets list con-law
+steno10k sets create con-law "Week 1"
+steno10k sets delete con-law week-1 -y
+
+steno10k import con-law week-1 ~/audio/*.m4a
+steno10k recordings list con-law week-1
+steno10k recordings rm con-law week-1 lecture-1.m4a -y
+
+steno10k status con-law week-1
+steno10k run con-law week-1
+
+steno10k config show
+```
+
+`--icon` takes a [Phosphor](https://phosphoricons.com/) icon name in
+kebab-case (e.g. `book`, `wave-sine`). **Emoji are not allowed** — the UI
+renders the glyph from the Phosphor set by name.
+
+## Running the pipeline
+
+`run` executes stages in order — `normalize → chunk → transcribe → clean →
+merge → summarize → bundle → notify` — streaming progress and printing a
+summary. Scope a run with:
+
+- `--force` — re-run stages even if their outputs already exist.
+- `--only STAGE` — run just one stage.
+- `--from STAGE` — run one stage and everything after it.
+- `--skip-llm` — skip the LLM stages (transcript-only run).
+
+```bash
+# Re-transcribe and everything downstream, without the LLM stages:
+steno10k run con-law week-1 --from transcribe --skip-llm
+```
+
+`--only` and `--from` are mutually exclusive.
+
+## Scripting
+
+Read commands accept `--json` for machine-readable output matching the API's
+shapes:
+
+```bash
+steno10k projects list --json | jq '.[].slug'
+steno10k status con-law week-1 --json | jq '.stages'
+```
+
+Editing configuration is done by hand in `<data-root>/config.yaml` — see
+[Configuration](/configuration).
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `1` | A run/stage failed, or an unexpected error |
+| `2` | Bad usage, unknown project/set, or config error |

@@ -45,6 +45,15 @@ docker compose up
 
 Then open the UI at `http://localhost:8000`.
 
+### CLI
+
+A terminal driver, `steno10k`, manages projects/sets/recordings and runs the
+pipeline over the same store — see the [CLI docs](docs-site/src/pages/cli.mdx).
+
+```bash
+steno10k run my-project week-1 --from transcribe --skip-llm
+```
+
 ## Hardware
 
 Only transcription is heavy — LLM stages are remote calls. Pick the Whisper size
