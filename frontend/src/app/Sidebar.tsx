@@ -201,6 +201,7 @@ export function Sidebar() {
   );
   const [width, setWidth] = useState<number>(() => readWidth());
   const dragState = useRef<{ startX: number; startWidth: number } | null>(null);
+  const dragAbort = useRef<AbortController | null>(null);
 
   const deleteSetProject =
     pendingDelete?.kind === "set" ? pendingDelete.project.slug : "";
@@ -218,6 +219,10 @@ export function Sidebar() {
     );
   }, [railed, width]);
 
+  // Defensive: if the Sidebar unmounts mid-drag, tear down any live window
+  // listeners (handleDragEnd removes them on mouseup during normal use).
+  useEffect(() => () => dragAbort.current?.abort(), []);
+
   function toggleCollapsed(slug: string) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -234,9 +239,16 @@ export function Sidebar() {
   }
 
   function handleDragStart(e: ReactMouseEvent) {
+    dragAbort.current?.abort(); // never leak an in-flight drag
+    const controller = new AbortController();
+    dragAbort.current = controller;
     dragState.current = { startX: e.clientX, startWidth: width };
-    window.addEventListener("mousemove", handleDragMove);
-    window.addEventListener("mouseup", handleDragEnd);
+    window.addEventListener("mousemove", handleDragMove, {
+      signal: controller.signal,
+    });
+    window.addEventListener("mouseup", handleDragEnd, {
+      signal: controller.signal,
+    });
   }
 
   function handleDragMove(e: MouseEvent) {
@@ -255,8 +267,8 @@ export function Sidebar() {
       localStorage.setItem(WIDTH_KEY, String(next));
     }
     dragState.current = null;
-    window.removeEventListener("mousemove", handleDragMove);
-    window.removeEventListener("mouseup", handleDragEnd);
+    dragAbort.current?.abort();
+    dragAbort.current = null;
   }
 
   async function confirmDelete() {

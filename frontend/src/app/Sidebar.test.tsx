@@ -205,6 +205,57 @@ test("collapsing a project hides its sets and persists to localStorage", () => {
   ).toContain("con-law");
 });
 
+test("clearing the search query restores the saved collapse state", () => {
+  localStorage.clear();
+  localStorage.setItem(
+    "steno10k.sidebar.collapsed",
+    JSON.stringify(["con-law"]),
+  );
+  vi.spyOn(hooks, "useProjects").mockReturnValue({
+    data: [
+      {
+        id: "1",
+        slug: "con-law",
+        title: "Con Law",
+        sets: [
+          {
+            id: "s1",
+            slug: "judicial-review",
+            title: "Judicial Review",
+            project_slug: "con-law",
+            recordings: [],
+            stages: {},
+          },
+        ],
+      },
+    ],
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useProjects>);
+
+  renderSidebar();
+  // Starts collapsed (id was persisted), so the set is hidden.
+  expect(
+    screen.queryByRole("link", { name: /Judicial Review/ }),
+  ).not.toBeInTheDocument();
+
+  // A non-empty query force-expands the matching project.
+  fireEvent.change(screen.getByPlaceholderText(/filter/i), {
+    target: { value: "judicial" },
+  });
+  expect(
+    screen.getByRole("link", { name: /Judicial Review/ }),
+  ).toBeInTheDocument();
+
+  // Clearing the query restores the saved collapse state.
+  fireEvent.change(screen.getByPlaceholderText(/filter/i), {
+    target: { value: "" },
+  });
+  expect(
+    screen.queryByRole("link", { name: /Judicial Review/ }),
+  ).not.toBeInTheDocument();
+});
+
 test("deleting a project via the kebab menu navigates home when it was the current route", async () => {
   vi.spyOn(hooks, "useProjects").mockReturnValue({
     data: [
