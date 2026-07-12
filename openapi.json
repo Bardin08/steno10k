@@ -71,6 +71,30 @@
         "title": "Config",
         "type": "object"
       },
+      "CreateProject": {
+        "properties": {
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "CreateProject",
+        "type": "object"
+      },
       "CreateTitle": {
         "properties": {
           "title": {
@@ -517,7 +541,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTitle"
+                "$ref": "#/components/schemas/CreateProject"
               }
             }
           },

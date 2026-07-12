@@ -377,6 +377,13 @@ export interface components {
             telegram?: components["schemas"]["TelegramConfig"];
             transcription?: components["schemas"]["TranscriptionConfig"];
         };
+        /** CreateProject */
+        CreateProject: {
+            /** Icon */
+            icon?: string | null;
+            /** Title */
+            title: string;
+        };
         /** CreateTitle */
         CreateTitle: {
             /** Title */
@@ -698,7 +705,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateTitle"];
+                "application/json": components["schemas"]["CreateProject"];
             };
         };
         responses: {
