@@ -377,7 +377,9 @@ test("Add custom endpoint modal validates the URL and adds a provider", async ()
     within(dialog).getByLabelText("Base URL"),
     "https://my-endpoint.example.com/v1",
   );
-  expect(within(dialog).queryByText(/must start with http/i)).not.toBeInTheDocument();
+  expect(
+    within(dialog).queryByText(/must start with http/i),
+  ).not.toBeInTheDocument();
   expect(addButton).not.toBeDisabled();
 
   await user.click(addButton);
