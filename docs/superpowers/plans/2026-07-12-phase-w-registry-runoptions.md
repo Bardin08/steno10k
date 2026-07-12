@@ -445,7 +445,7 @@ def create_run(
 ) -> dict[str, Any]:
     # `force` is threaded through; `stage_overrides` is accepted on the request
     # for forward-compatibility but intentionally NOT applied per-run yet — each
-    # run uses config-level `stages.enabled`. See docs/adr/0001-deferred-run-options.md.
+    # run uses config-level `stages.enabled`. See docs/adr/0002-deferred-run-options.md.
     run = run_queue.enqueue(project=body.project, set_=body.set, force=body.force)
     return ok(RunDTO.from_domain(run).model_dump())
 ```
@@ -521,11 +521,11 @@ git commit -m "test: full registry executes stages in canonical order via queue"
 ## Task 7: ADR for deferred run-options
 
 **Files:**
-- Create: `backend/../docs/adr/0001-deferred-run-options.md` (repo path `docs/adr/0001-deferred-run-options.md`)
+- Create: `backend/../docs/adr/0002-deferred-run-options.md` (repo path `docs/adr/0002-deferred-run-options.md`)
 
 - [ ] **Step 1: Write the ADR**
 
-Create `docs/adr/0001-deferred-run-options.md`:
+Create `docs/adr/0002-deferred-run-options.md`:
 
 ```markdown
 # 0001 — Deferred run-options (only / from_stage / per-run stage_overrides)
@@ -563,13 +563,13 @@ remains on the request for forward-compatibility but is intentionally unapplied.
 
 Confirm the path the router comment references now exists:
 
-Run: `test -f docs/adr/0001-deferred-run-options.md && echo OK`
+Run: `test -f docs/adr/0002-deferred-run-options.md && echo OK`
 Expected: `OK`.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/adr/0001-deferred-run-options.md
+git add docs/adr/0002-deferred-run-options.md
 git commit -m "docs: ADR 0001 deferred run-options (only/from_stage/stage_overrides)"
 ```
 

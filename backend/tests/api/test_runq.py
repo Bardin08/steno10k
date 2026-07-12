@@ -302,9 +302,7 @@ def test_full_registry_runs_stages_in_order(
     started: list[str] = []
     assert bus is not None
     bus.subscribe(
-        lambda e: started.append(str(e.payload.get("stage")))
-        if e.kind == "stage_started"
-        else None
+        lambda e: started.append(str(e.payload.get("stage"))) if e.kind == "stage_started" else None
     )
     q.start()
     try:
