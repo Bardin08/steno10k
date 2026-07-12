@@ -20,7 +20,7 @@ function renderAt(path: string) {
   );
 }
 
-test("renders the set title and three tabs", () => {
+function mockSet() {
   vi.spyOn(hooks, "useSet").mockReturnValue({
     data: {
       id: "s1",
@@ -33,9 +33,23 @@ test("renders the set title and three tabs", () => {
     isLoading: false,
     isError: false,
   } as unknown as ReturnType<typeof hooks.useSet>);
+}
+
+test("renders the set title and two tabs", () => {
+  mockSet();
   renderAt("/p/con-law/s/jr");
   expect(screen.getByText("Judicial Review")).toBeInTheDocument();
   expect(screen.getByRole("tab", { name: /recordings/i })).toBeInTheDocument();
-  expect(screen.getByRole("tab", { name: /run/i })).toBeInTheDocument();
   expect(screen.getByRole("tab", { name: /artifacts/i })).toBeInTheDocument();
+  expect(screen.queryByRole("tab", { name: /run/i })).toBeNull();
+});
+
+test("legacy ?tab=run redirects to recordings", () => {
+  mockSet();
+  renderAt("/p/con-law/s/jr?tab=run");
+  expect(screen.queryByRole("tab", { name: /run/i })).toBeNull();
+  expect(screen.getByRole("tab", { name: /recordings/i })).toHaveAttribute(
+    "data-state",
+    "active",
+  );
 });

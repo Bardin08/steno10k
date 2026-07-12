@@ -1,12 +1,12 @@
+import { useEffect } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components";
 import { ErrorState, Skeleton } from "../components";
 import { useSet } from "../api/hooks";
 import { RecordingsTab } from "./parts/RecordingsTab";
-import { RunTab } from "./parts/RunTab";
 import { ArtifactsTab } from "./parts/ArtifactsTab";
 
-const TABS = ["recordings", "run", "artifacts"] as const;
+const TABS = ["recordings", "artifacts"] as const;
 type TabKey = (typeof TABS)[number];
 
 export function SetDetail() {
@@ -16,6 +16,14 @@ export function SetDetail() {
   const tab: TabKey = (TABS as readonly string[]).includes(raw ?? "")
     ? (raw as TabKey)
     : "recordings";
+
+  // Legacy `?tab=run` links (the Run tab was folded into Recordings) —
+  // normalize the URL rather than silently rendering Recordings under a
+  // stale query string.
+  useEffect(() => {
+    if (raw === "run") setParams({ tab: "recordings" }, { replace: true });
+  }, [raw, setParams]);
+
   const { data, isLoading, isError, refetch } = useSet(project, set);
 
   if (isLoading) return <Skeleton className="h-40 w-full" />;
@@ -39,7 +47,6 @@ export function SetDetail() {
       >
         <TabsList>
           <TabsTrigger value="recordings">Recordings</TabsTrigger>
-          <TabsTrigger value="run">Run</TabsTrigger>
           <TabsTrigger value="artifacts">Artifacts</TabsTrigger>
         </TabsList>
         <TabsContent value="recordings">
@@ -48,9 +55,6 @@ export function SetDetail() {
             project={project}
             set={set}
           />
-        </TabsContent>
-        <TabsContent value="run">
-          <RunTab key={`${project}/${set}`} project={project} set={set} />
         </TabsContent>
         <TabsContent value="artifacts">
           <ArtifactsTab key={`${project}/${set}`} project={project} set={set} />
