@@ -20,6 +20,10 @@ docker run --rm \
   out in the same tree.
 - Transcription runs locally with Whisper; only the clean/summarize stages call
   an OpenAI-compatible model, and only if you configure one.
+- The Whisper model downloads into the mounted volume on your first run (a few
+  minutes, streamed to logs — not stuck), then is reused. Set `OPENAI_API_KEY`
+  in `.env` if you want the clean/summarize stages. See
+  [Self-hosting](/steno10k/docs/self-hosting/) for hardware and memory guidance.
 
 ## Your first run
 
