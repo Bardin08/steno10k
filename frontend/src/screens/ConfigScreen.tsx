@@ -151,12 +151,12 @@ export function ConfigScreen() {
         <aside className="order-2 md:order-1">
           <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
             {SECTIONS.map((s) => (
-              <li key={s.key}>
+              <li key={s.key} className="md:w-full">
                 <button
                   type="button"
                   aria-current={section === s.key}
                   onClick={() => setSection(s.key)}
-                  className={`box-border block whitespace-nowrap rounded-sm border-l-2 px-3 py-1.5 pl-[10px] text-left text-sm font-medium transition-colors duration-[var(--dur-micro)] ease-editorial ${
+                  className={`box-border block whitespace-nowrap rounded-sm border-l-2 px-3 py-1.5 pl-[10px] text-left text-sm font-medium transition-colors duration-[var(--dur-micro)] ease-editorial md:w-full ${
                     section === s.key
                       ? "border-accent bg-accent-wash text-accent-ink"
                       : "border-transparent text-ink-soft hover:text-ink"
@@ -172,7 +172,7 @@ export function ConfigScreen() {
         <div
           role="region"
           aria-label={`${SECTIONS.find((s) => s.key === section)?.label} help`}
-          className="order-1 flex flex-col gap-2 rounded-md border border-hairline bg-surface p-4 md:order-3"
+          className="order-1 flex flex-col gap-2 self-start rounded-md border border-hairline bg-surface p-4 md:order-3"
         >
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
             Help
