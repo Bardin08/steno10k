@@ -3,17 +3,17 @@ from __future__ import annotations
 from steno10k.stages._pool import run_pool
 
 
-def test_empty_items_yields_nothing():
+def test_empty_items_yields_nothing() -> None:
     assert list(run_pool([], lambda x: x, concurrency=4)) == []
 
 
-def test_inline_preserves_order_and_results():
+def test_inline_preserves_order_and_results() -> None:
     out = list(run_pool([1, 2, 3], lambda x: x * 10, concurrency=1))
     assert out == [(1, 10, None), (2, 20, None), (3, 30, None)]
 
 
-def test_inline_captures_error_without_raising():
-    def fn(x):
+def test_inline_captures_error_without_raising() -> None:
+    def fn(x: int) -> int:
         if x == 2:
             raise ValueError("boom")
         return x
@@ -25,8 +25,8 @@ def test_inline_captures_error_without_raising():
     assert out[2] == (3, 3, None)
 
 
-def test_pooled_runs_all_items_and_isolates_failure():
-    def fn(x):
+def test_pooled_runs_all_items_and_isolates_failure() -> None:
+    def fn(x: int) -> int:
         if x == 2:
             raise ValueError("boom")
         return x * 10

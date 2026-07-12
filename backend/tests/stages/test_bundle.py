@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
 from docx import Document
 
 from steno10k.contracts.config import Config
@@ -9,7 +12,7 @@ from steno10k.stages.bundle import BundleStage
 from tests.stages.support import make_ctx
 
 
-def _seed(set_dir, *, clean=None, summary=None) -> None:
+def _seed(set_dir: Path, *, clean: str | None = None, summary: str | None = None) -> None:
     if clean is not None:
         (set_dir / "merged").mkdir(parents=True, exist_ok=True)
         (set_dir / "merged" / "clean_transcript.md").write_text(clean, encoding="utf-8")
@@ -17,13 +20,13 @@ def _seed(set_dir, *, clean=None, summary=None) -> None:
         (set_dir / "summary.md").write_text(summary, encoding="utf-8")
 
 
-def test_name_and_deps():
+def test_name_and_deps() -> None:
     stage = BundleStage()
     assert stage.name == "bundle"
     assert stage.depends_on == ["merge"]
 
 
-def test_enabled_gates_on_save_bundle_docx():
+def test_enabled_gates_on_save_bundle_docx() -> None:
     stage = BundleStage()
     cfg = Config()
     assert stage.enabled(cfg, RunOptions()) is True
@@ -31,7 +34,7 @@ def test_enabled_gates_on_save_bundle_docx():
     assert stage.enabled(cfg, RunOptions()) is False
 
 
-def test_builds_both_docx(set_dir):
+def test_builds_both_docx(set_dir: Path) -> None:
     _seed(set_dir, clean="# Transcript\n\nBody.", summary="# Summary\n\nPoints.")
     result = BundleStage().run(set_dir_ctx := make_ctx(set_dir))
 
@@ -44,7 +47,7 @@ def test_builds_both_docx(set_dir):
     assert set_dir_ctx.errors.count == 0
 
 
-def test_missing_summary_yields_transcript_only(set_dir):
+def test_missing_summary_yields_transcript_only(set_dir: Path) -> None:
     _seed(set_dir, clean="# Transcript\n\nBody.")  # no summary.md
     ctx = make_ctx(set_dir)
 
@@ -56,12 +59,12 @@ def test_missing_summary_yields_transcript_only(set_dir):
     assert result.stats["built"] == 1
 
 
-def test_render_failure_reports_failed(set_dir, monkeypatch):
+def test_render_failure_reports_failed(set_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     import steno10k.lib.docx as docxmod
 
     _seed(set_dir, clean="# Transcript\n\nBody.", summary="# Summary")
 
-    def boom(source, dst, force):
+    def boom(source: Path, dst: Path, force: bool) -> None:
         raise RuntimeError("render exploded")
 
     monkeypatch.setattr(docxmod, "_build_one", boom)

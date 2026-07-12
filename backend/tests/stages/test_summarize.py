@@ -1,23 +1,25 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from steno10k.contracts.status import StageStatus
 from steno10k.stages.summarize import SummarizeStage
 from tests.stages.support import FakeLLM, make_ctx
 
 
-def _seed_merged_clean(set_dir, text: str) -> None:
+def _seed_merged_clean(set_dir: Path, text: str) -> None:
     d = set_dir / "merged"
     d.mkdir(parents=True, exist_ok=True)
     (d / "clean_transcript.md").write_text(text, encoding="utf-8")
 
 
-def test_name_and_deps():
+def test_name_and_deps() -> None:
     stage = SummarizeStage()
     assert stage.name == "summarize"
     assert stage.depends_on == ["merge", "clean"]
 
 
-def test_writes_summary_from_merged_clean(set_dir):
+def test_writes_summary_from_merged_clean(set_dir: Path) -> None:
     _seed_merged_clean(set_dir, "the full clean transcript")
     llm = FakeLLM(lambda system, user: f"SUMMARY of: {user}")
     ctx = make_ctx(set_dir, llm=llm)
@@ -31,7 +33,7 @@ def test_writes_summary_from_merged_clean(set_dir):
     assert "en" in system and user == "the full clean transcript"
 
 
-def test_target_language_is_formatted_into_prompt(set_dir):
+def test_target_language_is_formatted_into_prompt(set_dir: Path) -> None:
     _seed_merged_clean(set_dir, "text")
     llm = FakeLLM()
     ctx = make_ctx(set_dir, llm=llm)
@@ -44,7 +46,7 @@ def test_target_language_is_formatted_into_prompt(set_dir):
     assert "{target_output_language}" not in system
 
 
-def test_custom_summary_filename(set_dir):
+def test_custom_summary_filename(set_dir: Path) -> None:
     _seed_merged_clean(set_dir, "text")
     ctx = make_ctx(set_dir, llm=FakeLLM(lambda s, u: "S"))
     ctx.cfg.output.summary_filename = "notes.md"
@@ -55,21 +57,21 @@ def test_custom_summary_filename(set_dir):
     assert not (set_dir / "summary.md").exists()
 
 
-def test_missing_transcript_fails(set_dir):
+def test_missing_transcript_fails(set_dir: Path) -> None:
     ctx = make_ctx(set_dir, llm=FakeLLM())
     result = SummarizeStage().run(ctx)
     assert result.status == StageStatus.FAILED
     assert ctx.errors.count == 1
 
 
-def test_empty_transcript_fails(set_dir):
+def test_empty_transcript_fails(set_dir: Path) -> None:
     _seed_merged_clean(set_dir, "   ")
     ctx = make_ctx(set_dir, llm=FakeLLM())
     result = SummarizeStage().run(ctx)
     assert result.status == StageStatus.FAILED
 
 
-def test_idempotent_skip_unless_force(set_dir):
+def test_idempotent_skip_unless_force(set_dir: Path) -> None:
     _seed_merged_clean(set_dir, "text")
     (set_dir / "summary.md").write_text("EXISTING", encoding="utf-8")
 
@@ -83,7 +85,7 @@ def test_idempotent_skip_unless_force(set_dir):
     assert (set_dir / "summary.md").read_text(encoding="utf-8") == "NEW\n"
 
 
-def test_no_llm_client_skips(set_dir):
+def test_no_llm_client_skips(set_dir: Path) -> None:
     _seed_merged_clean(set_dir, "text")
     ctx = make_ctx(set_dir, llm=None)
     assert SummarizeStage().run(ctx).status == StageStatus.SKIPPED

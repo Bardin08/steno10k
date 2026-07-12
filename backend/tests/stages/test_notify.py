@@ -1,23 +1,25 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from steno10k.contracts.events import EventKind
 from steno10k.contracts.status import StageStatus
 from steno10k.stages.notify import NotifyStage
 from tests.stages.support import RecordingBus, make_ctx
 
 
-def _touch(path, text="x"):
+def _touch(path: Path, text: str = "x") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
 
 
-def test_name_and_deps():
+def test_name_and_deps() -> None:
     stage = NotifyStage()
     assert stage.name == "notify"
     assert stage.depends_on == ["bundle"]
 
 
-def test_emits_artifact_list_and_counts(set_dir):
+def test_emits_artifact_list_and_counts(set_dir: Path) -> None:
     _touch(set_dir / "merged" / "clean_transcript.md")
     _touch(set_dir / "summary.md")
     _touch(set_dir / "bundle" / "transcript.docx")
@@ -41,7 +43,7 @@ def test_emits_artifact_list_and_counts(set_dir):
     }
 
 
-def test_only_lists_existing_artifacts(set_dir):
+def test_only_lists_existing_artifacts(set_dir: Path) -> None:
     _touch(set_dir / "summary.md")  # nothing else produced
     bus = RecordingBus()
     ctx = make_ctx(set_dir, events=bus)
@@ -53,7 +55,7 @@ def test_only_lists_existing_artifacts(set_dir):
     assert payload["artifacts"] == ["summary.md"]
 
 
-def test_honors_custom_summary_filename(set_dir):
+def test_honors_custom_summary_filename(set_dir: Path) -> None:
     _touch(set_dir / "notes.md")
     bus = RecordingBus()
     ctx = make_ctx(set_dir, events=bus)
