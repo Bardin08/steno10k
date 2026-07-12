@@ -209,3 +209,23 @@ def test_cancel_during_running_then_exception_stays_cancelled(tmp_path: Path) ->
         assert q.get(run.id).status == RunStatus.CANCELLED
     finally:
         q.stop()
+
+
+def test_enqueue_defaults_force_false(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    storage.create_project("Law")
+    storage.create_set("law", "Week 1")
+    q = RunQueue(storage=storage, registry=StageRegistry([]))
+    run = q.enqueue(project="law", set_="week-1")
+    assert run.force is False
+    assert q.get(run.id).force is False
+
+
+def test_enqueue_records_force_true(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    storage.create_project("Law")
+    storage.create_set("law", "Week 1")
+    q = RunQueue(storage=storage, registry=StageRegistry([]))
+    run = q.enqueue(project="law", set_="week-1", force=True)
+    assert run.force is True
+    assert q.get(run.id).force is True  # survives _snapshot round-trip

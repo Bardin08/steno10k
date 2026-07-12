@@ -43,6 +43,7 @@ class Run:
     set_: str
     status: RunStatus = RunStatus.QUEUED
     position: int = 0
+    force: bool = False
     stats: dict[str, Any] = field(default_factory=dict)
     events: list[Event] = field(default_factory=list)
 
@@ -94,11 +95,17 @@ class RunQueue:
 
     # -- public API ------------------------------------------------------
 
-    def enqueue(self, project: str, set_: str) -> Run:
+    def enqueue(self, project: str, set_: str, *, force: bool = False) -> Run:
         # position is a best-effort snapshot of queue depth at enqueue time;
         # it is never updated afterwards, so it can go stale as other runs
         # complete or are cancelled ahead of this one.
-        run = Run(id=new_id(), project=project, set_=set_, position=self._queue.qsize())
+        run = Run(
+            id=new_id(),
+            project=project,
+            set_=set_,
+            position=self._queue.qsize(),
+            force=force,
+        )
         bus = EventBus()
         bus.subscribe(functools.partial(self._record_event, run.id))
         with self._lock:
@@ -152,6 +159,7 @@ class RunQueue:
             set_=run.set_,
             status=run.status,
             position=run.position,
+            force=run.force,
             stats=dict(run.stats),
             events=list(run.events),
         )
