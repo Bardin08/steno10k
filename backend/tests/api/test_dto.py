@@ -24,3 +24,12 @@ def test_project_dto_from_domain() -> None:
     p.sets.append(RecordingSet(slug="week-1", title="Week 1", project_slug="law"))
     dto = ProjectDTO.from_domain(p)
     assert dto.slug == "law" and dto.sets[0].slug == "week-1"
+
+
+def test_project_dto_carries_icon() -> None:
+    dto = ProjectDTO.from_domain(Project(slug="law", title="Law", icon="scales"))
+    assert dto.icon == "scales"
+
+
+def test_project_dto_icon_defaults_none() -> None:
+    assert ProjectDTO.from_domain(Project(slug="law", title="Law")).icon is None

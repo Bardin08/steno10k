@@ -30,3 +30,4 @@ class Project:
     title: str
     id: str = field(default_factory=new_id)  # GUID
     sets: list[RecordingSet] = field(default_factory=list)
+    icon: str | None = None

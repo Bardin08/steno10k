@@ -49,11 +49,16 @@ class ProjectDTO(BaseModel):
     slug: str
     title: str
     sets: list[SetDTO]
+    icon: str | None = None
 
     @classmethod
     def from_domain(cls, p: Project) -> ProjectDTO:
         return cls(
-            id=p.id, slug=p.slug, title=p.title, sets=[SetDTO.from_domain(s) for s in p.sets]
+            id=p.id,
+            slug=p.slug,
+            title=p.title,
+            sets=[SetDTO.from_domain(s) for s in p.sets],
+            icon=p.icon,
         )
 
 
