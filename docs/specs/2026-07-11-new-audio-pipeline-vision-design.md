@@ -186,6 +186,14 @@ knob that sets the hardware floor is the Whisper model size.
   model copy). Document this so users don't OOM.
 - **CTranslate2 is CPU-only on Apple Silicon** (no Metal/MPS; GPU accel is CUDA
   only). Document — it surprises Mac users.
+- **M2 — Resource syscheck (deferred from M1·P):** inspect the container's
+  memory/CPU (cgroup limits), *recommend* a model + `max_workers` config, and
+  *warn or refuse* infeasible selections (e.g. `large-v3 × 8` on 10 GB), surfaced
+  in both config and the UI. M1·P ships only the non-blocking warning precursor.
+- **M2 — UI-initiated model download (deferred from M1·P):** let the user select
+  and download a Whisper model from the UI with a visible progress indicator, so
+  the first-run download is never mistaken for a hang; the selector reflects which
+  models are already cached. (See ADR 0003.)
 
 ## 10. Web UI + FastAPI (from day one; detailed UX in its own spec)
 
