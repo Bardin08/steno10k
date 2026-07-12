@@ -11,6 +11,7 @@ dist/
 # Node
 node_modules/
 frontend/dist/
+/site/
 
 # Local data & secrets — NEVER commit
 config.yaml
