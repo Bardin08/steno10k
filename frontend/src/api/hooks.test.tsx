@@ -67,10 +67,9 @@ test("useDeleteSet DELETEs the set and invalidates the projects list", async () 
   await act(async () => {
     await result.current.mutateAsync("week-1");
   });
-  expect(client.request).toHaveBeenCalledWith(
-    "/projects/con-law/sets/week-1",
-    { method: "DELETE" },
-  );
+  expect(client.request).toHaveBeenCalledWith("/projects/con-law/sets/week-1", {
+    method: "DELETE",
+  });
   expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["projects"] });
 });
 
