@@ -4,7 +4,7 @@ import { apiUrl } from "./client";
 import { keys } from "./keys";
 import { STAGE_NAMES, type RunStatus, type StageName } from "./types";
 
-type StageStatus = "queued" | "running" | "done" | "failed";
+type StageStatus = "queued" | "running" | "done" | "failed" | "skipped";
 export interface RunEvent {
   kind: string;
   payload: Record<string, unknown>;
@@ -47,6 +47,9 @@ function reduce(state: RunView, ev: RunEvent): RunView {
     case "stage_completed":
       if (stage) next.stages[stage] = { status: "done" };
       break;
+    case "stage_skipped":
+      if (stage) next.stages[stage] = { status: "skipped" };
+      break;
     case "stage_failed":
       if (stage) next.stages[stage] = { status: "failed" };
       next.status = "failed";
@@ -68,6 +71,7 @@ const EVENT_KINDS = [
   "stage_started",
   "stage_progress",
   "stage_completed",
+  "stage_skipped",
   "stage_failed",
   "run_completed",
   "error",

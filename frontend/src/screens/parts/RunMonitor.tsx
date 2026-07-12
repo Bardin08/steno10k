@@ -10,6 +10,7 @@ const DOT: Record<string, string> = {
   queued: "bg-sink", // faint
   running: "bg-accent", // green = the only live color
   done: "bg-ink-faint", // muted grey = settled
+  skipped: "bg-sink", // faint = never ran
   failed: "bg-ink", // stark = draws the eye
 };
 
