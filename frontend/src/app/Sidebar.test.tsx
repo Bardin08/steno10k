@@ -152,3 +152,42 @@ test("filters projects and sets by a live search query", () => {
   expect(screen.getByText("Health Law")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /Insurance/ })).toBeInTheDocument();
 });
+
+test("collapsing a project hides its sets and persists to localStorage", () => {
+  localStorage.clear();
+  vi.spyOn(hooks, "useProjects").mockReturnValue({
+    data: [
+      {
+        id: "1",
+        slug: "con-law",
+        title: "Con Law",
+        sets: [
+          {
+            id: "s1",
+            slug: "judicial-review",
+            title: "Judicial Review",
+            project_slug: "con-law",
+            recordings: [],
+            stages: {},
+          },
+        ],
+      },
+    ],
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useProjects>);
+
+  renderSidebar();
+  expect(
+    screen.getByRole("link", { name: /Judicial Review/ }),
+  ).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /collapse con law/i }));
+
+  expect(
+    screen.queryByRole("link", { name: /Judicial Review/ }),
+  ).not.toBeInTheDocument();
+  expect(
+    JSON.parse(localStorage.getItem("steno10k.sidebar.collapsed") ?? "[]"),
+  ).toContain("con-law");
+});

@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 import { NavLink } from "react-router";
-import { FolderSimple, Plus } from "@phosphor-icons/react";
+import {
+  CaretDown,
+  CaretRight,
+  FolderSimple,
+  Plus,
+} from "@phosphor-icons/react";
 import { Button, EmptyState, Input, Skeleton } from "../components";
 import { toast } from "../components";
 import type { ProjectDTO, SetDTO } from "../api/types";
@@ -8,8 +13,24 @@ import { useCreateProject, useCreateSet, useProjects } from "../api/hooks";
 import { ApiError } from "../api/client";
 import { CreateDialog } from "./CreateDialog";
 
+const COLLAPSED_KEY = "steno10k.sidebar.collapsed";
+
 function reportError(e: unknown) {
   toast.error(e instanceof ApiError ? e.message : "Something went wrong");
+}
+
+function readCollapsed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    return new Set(Array.isArray(arr) ? (arr as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeCollapsed(collapsed: Set<string>) {
+  localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
 }
 
 interface FilteredProject {
@@ -87,11 +108,24 @@ export function Sidebar() {
   const createProject = useCreateProject();
   const [projectOpen, setProjectOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [collapsed, setCollapsed] = useState<Set<string>>(() =>
+    readCollapsed(),
+  );
 
   const filtered = useMemo(
     () => filterProjects(projects, query),
     [projects, query],
   );
+
+  function toggleCollapsed(slug: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      writeCollapsed(next);
+      return next;
+    });
+  }
 
   if (isLoading) {
     return (
@@ -157,31 +191,54 @@ export function Sidebar() {
       )}
 
       <ul className="flex flex-col gap-3">
-        {filtered.map(({ project: p, sets }) => (
-          <li key={p.id}>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-ink">{p.title}</span>
-              <NewSet
-                project={p.slug}
-                existingNames={p.sets.map((s) => s.title)}
-              />
-            </div>
-            <ul className="mt-1 flex flex-col">
-              {sets.map((s) => (
-                <li key={s.id}>
-                  <NavLink
-                    to={`/p/${p.slug}/s/${s.slug}`}
-                    className={({ isActive }) =>
-                      `block rounded-sm px-2 py-1 text-[13px] ${isActive ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"}`
+        {filtered.map(({ project: p, sets, forceExpand }) => {
+          const isCollapsed = collapsed.has(p.slug) && !forceExpand;
+          return (
+            <li key={p.id}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label={
+                      isCollapsed ? `expand ${p.title}` : `collapse ${p.title}`
                     }
+                    onClick={() => toggleCollapsed(p.slug)}
+                    className="grid h-5 w-5 place-items-center text-ink-faint hover:text-ink"
                   >
-                    {s.title}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
+                    {isCollapsed ? (
+                      <CaretRight size={12} />
+                    ) : (
+                      <CaretDown size={12} />
+                    )}
+                  </button>
+                  <span className="text-sm font-medium text-ink">
+                    {p.title}
+                  </span>
+                </div>
+                <NewSet
+                  project={p.slug}
+                  existingNames={p.sets.map((s) => s.title)}
+                />
+              </div>
+              {!isCollapsed && (
+                <ul className="mt-1 flex flex-col">
+                  {sets.map((s) => (
+                    <li key={s.id}>
+                      <NavLink
+                        to={`/p/${p.slug}/s/${s.slug}`}
+                        className={({ isActive }) =>
+                          `block rounded-sm px-2 py-1 text-[13px] ${isActive ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"}`
+                        }
+                      >
+                        {s.title}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );
