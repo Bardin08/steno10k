@@ -31,6 +31,7 @@ export interface ProjectDTO {
   id: string;
   slug: string;
   title: string;
+  icon: string | null;
   sets: SetDTO[];
 }
 export interface RunDTO {
@@ -52,4 +53,5 @@ export interface SystemInfoDTO {
   current_model: string;
   max_workers: number;
   data_root: string;
+  llm_key_present: boolean;
 }
