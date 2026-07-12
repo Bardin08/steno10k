@@ -12,6 +12,7 @@ import {
   useUploadRecordings,
 } from "../../api/hooks";
 import { STAGE_NAMES } from "../../api/types";
+import { resolveEnabledStages } from "../../app/stageDeps";
 import { UploadZone } from "./UploadZone";
 import { RecordingList } from "./RecordingList";
 import { SplitButton } from "./SplitButton";
@@ -44,7 +45,11 @@ export function RecordingsTab({
   const stagesEnabled =
     ((config?.stages as Record<string, unknown> | undefined)?.enabled as
       Record<string, boolean> | undefined) ?? {};
-  const enabledStages = STAGE_NAMES.filter((s) => stagesEnabled[s] !== false);
+  const flags = Object.fromEntries(
+    STAGE_NAMES.map((s) => [s, stagesEnabled[s] !== false]),
+  );
+  const { enabled } = resolveEnabledStages(flags);
+  const enabledStages = STAGE_NAMES.filter((s) => enabled.has(s));
 
   const onError = (e: unknown) =>
     toast.error(e instanceof ApiError ? e.message : "Upload failed");

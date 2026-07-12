@@ -124,3 +124,48 @@ test("confirming the modal with force enqueues force: true", () => {
     expect.anything(),
   );
 });
+
+test("with transcribe disabled in config, the modal lists only the effective (cascaded) enabled stages", () => {
+  vi.spyOn(hooks, "useRecordings").mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useRecordings>);
+  mockCommon();
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      stages: {
+        enabled: {
+          normalize: true,
+          chunk: true,
+          transcribe: false,
+          clean: true,
+          merge: true,
+          summarize: true,
+          bundle: true,
+          notify: true,
+        },
+      },
+    },
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+  vi.spyOn(hooks, "useEnqueueRun").mockReturnValue(
+    mutationSpy() as unknown as ReturnType<typeof hooks.useEnqueueRun>,
+  );
+  render(
+    <QueryClientProvider client={makeQueryClient()}>
+      <MemoryRouter>
+        <RecordingsTab project="con-law" set="jr" />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: /run settings/i }));
+  const dialog = screen.getByRole("dialog");
+  expect(within(dialog).getByText("normalize")).toBeInTheDocument();
+  expect(within(dialog).getByText("chunk")).toBeInTheDocument();
+  expect(within(dialog).queryByText("transcribe")).not.toBeInTheDocument();
+  expect(within(dialog).queryByText("clean")).not.toBeInTheDocument();
+  expect(within(dialog).queryByText("merge")).not.toBeInTheDocument();
+  expect(within(dialog).queryByText("summarize")).not.toBeInTheDocument();
+  expect(within(dialog).queryByText("bundle")).not.toBeInTheDocument();
+  expect(within(dialog).queryByText("notify")).not.toBeInTheDocument();
+});
