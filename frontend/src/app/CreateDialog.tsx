@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button, Input, Modal } from "../components";
 
 interface CreateDialogProps {
@@ -8,6 +8,8 @@ interface CreateDialogProps {
   label: string;
   submitLabel: string;
   pending?: boolean;
+  /** Existing sibling names; a case-insensitive match is rejected inline. */
+  existingNames?: string[];
   onSubmit: (value: string) => void;
 }
 
@@ -20,33 +22,55 @@ export function CreateDialog({
   label,
   submitLabel,
   pending,
+  existingNames,
   onSubmit,
 }: CreateDialogProps) {
   const [value, setValue] = useState("");
+  const [error, setError] = useState<string | undefined>();
 
-  function change(next: boolean) {
-    if (!next) setValue(""); // reset when closing so the next open starts blank
-    onOpenChange(next);
-  }
+  // Start every open blank + error-free. This runs on open regardless of how
+  // the previous instance closed — including the parent closing via onSuccess,
+  // where Radix's onOpenChange never fires.
+  useEffect(() => {
+    if (open) {
+      setValue("");
+      setError(undefined);
+    }
+  }, [open]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const trimmed = value.trim();
     if (!trimmed || pending) return;
+    const clash = existingNames?.some(
+      (n) => n.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (clash) {
+      setError(`"${trimmed}" already exists.`);
+      return;
+    }
     onSubmit(trimmed);
   }
 
   return (
-    <Modal open={open} onOpenChange={change} title={title}>
+    <Modal open={open} onOpenChange={onOpenChange} title={title}>
       <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-5">
         <Input
           label={label}
           value={value}
+          error={error}
           autoFocus
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            if (error) setError(undefined);
+          }}
         />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={() => change(false)}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={pending || !value.trim()}>

@@ -78,3 +78,26 @@ test("the new-project dialog submits the typed title", () => {
 
   expect(mutate).toHaveBeenCalledWith("Con Law", expect.anything());
 });
+
+test("blocks creating a project whose name already exists", () => {
+  vi.spyOn(hooks, "useProjects").mockReturnValue({
+    data: [{ id: "1", slug: "con-law", title: "Con Law", sets: [] }],
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useProjects>);
+  const mutate = vi.fn();
+  vi.spyOn(hooks, "useCreateProject").mockReturnValue({
+    mutate,
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.useCreateProject>);
+
+  renderSidebar();
+  fireEvent.click(screen.getByRole("button", { name: "project" }));
+  fireEvent.change(screen.getByLabelText(/project title/i), {
+    target: { value: "con law" }, // case-insensitive clash with "Con Law"
+  });
+  fireEvent.click(screen.getByRole("button", { name: /create project/i }));
+
+  expect(mutate).not.toHaveBeenCalled();
+  expect(screen.getByText(/already exists/i)).toBeInTheDocument();
+});

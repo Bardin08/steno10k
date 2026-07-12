@@ -11,7 +11,13 @@ function reportError(e: unknown) {
   toast.error(e instanceof ApiError ? e.message : "Something went wrong");
 }
 
-function NewSet({ project }: { project: string }) {
+function NewSet({
+  project,
+  existingNames,
+}: {
+  project: string;
+  existingNames: string[];
+}) {
   const create = useCreateSet(project);
   const [open, setOpen] = useState(false);
   return (
@@ -29,6 +35,7 @@ function NewSet({ project }: { project: string }) {
         label="Set title"
         submitLabel="Create set"
         pending={create.isPending}
+        existingNames={existingNames}
         onSubmit={(title) =>
           create.mutate(title, {
             onSuccess: () => setOpen(false),
@@ -77,6 +84,7 @@ export function Sidebar() {
         label="Project title"
         submitLabel="Create project"
         pending={createProject.isPending}
+        existingNames={(projects ?? []).map((p) => p.title)}
         onSubmit={(title) =>
           createProject.mutate(title, {
             onSuccess: () => setProjectOpen(false),
@@ -98,7 +106,10 @@ export function Sidebar() {
           <li key={p.id}>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-ink">{p.title}</span>
-              <NewSet project={p.slug} />
+              <NewSet
+                project={p.slug}
+                existingNames={p.sets.map((s) => s.title)}
+              />
             </div>
             <ul className="mt-1 flex flex-col">
               {p.sets.map((s) => (
