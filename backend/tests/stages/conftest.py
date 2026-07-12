@@ -45,3 +45,11 @@ def make_ctx(tmp_path: Path) -> MakeCtx:
         return ctx, events
 
     return _make
+
+
+@pytest.fixture
+def set_dir(tmp_path: Path) -> Path:
+    """A fresh set directory shaped like <data_root>/<project>/<set>."""
+    d = tmp_path / "data" / "proj" / "set-a"
+    d.mkdir(parents=True)
+    return d

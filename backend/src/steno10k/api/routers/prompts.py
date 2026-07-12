@@ -9,21 +9,9 @@ from pydantic import BaseModel
 from steno10k.api.configsvc import ConfigService
 from steno10k.api.deps import get_config_service, get_data_root
 from steno10k.api.envelope import ApiError, ok
+from steno10k.lib.prompts import PROMPT_NAMES, default_prompt
 
 router = APIRouter(prefix="/api/v1/prompts", tags=["prompts"])
-
-# Prompt semantics are underspecified by the F1 contracts (there is no registry of
-# stage prompt templates yet — that lands with the concrete stage implementations in
-# fan-out). Minimal choice for F2: a fixed set of named prompts, one per LLM-backed
-# stage (clean, summarize), each with a small built-in default. Overrides are plain
-# text files named "<name>.md" under the override directory (config.prompts.override_dir,
-# or "<data-root>/prompt_overrides" when unset).
-DEFAULT_PROMPTS: dict[str, str] = {
-    "clean": "Clean up this raw transcript chunk: fix punctuation and obvious ASR errors, "
-    "keep the speaker's meaning and wording otherwise unchanged.",
-    "summarize": "Write a structured conspect (summary) of this lecture transcript, "
-    "organized by topic with headings.",
-}
 
 
 class PromptDTO(BaseModel):
@@ -51,11 +39,11 @@ def _dto(config_service: ConfigService, data_root: Path, name: str) -> PromptDTO
     if override_path.is_file():
         content = override_path.read_text(encoding="utf-8")
         return PromptDTO(name=name, source="override", content=content)
-    return PromptDTO(name=name, source="default", content=DEFAULT_PROMPTS[name])
+    return PromptDTO(name=name, source="default", content=default_prompt(name))
 
 
 def _require_known(name: str) -> None:
-    if name not in DEFAULT_PROMPTS:
+    if name not in PROMPT_NAMES:
         raise ApiError(404, "prompt_not_found", f"prompt not found: {name}")
 
 
@@ -64,9 +52,7 @@ def list_prompts(
     config_service: Annotated[ConfigService, Depends(get_config_service)],
     data_root: Annotated[Path, Depends(get_data_root)],
 ) -> dict[str, Any]:
-    return ok(
-        [_dto(config_service, data_root, name).model_dump() for name in sorted(DEFAULT_PROMPTS)]
-    )
+    return ok([_dto(config_service, data_root, name).model_dump() for name in sorted(PROMPT_NAMES)])
 
 
 @router.put("/{name}")
