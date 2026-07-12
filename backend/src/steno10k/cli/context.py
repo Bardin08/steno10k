@@ -5,14 +5,22 @@ from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
 
+import yaml
+from pydantic import ValidationError
+
 from steno10k.api.configsvc import ConfigService
 from steno10k.api.storage import Storage
+from steno10k.contracts.config import Config
 
 
 class ExitCode(IntEnum):
     OK = 0
     FAILURE = 1  # a run/stage failed, or an unexpected runtime error
     USAGE = 2  # bad usage, unknown project/set, or config error
+
+
+class CliUsageError(Exception):
+    """A user/environment error that should exit with ExitCode.USAGE (2)."""
 
 
 @dataclass
@@ -24,6 +32,14 @@ class Deps:
     config_service: ConfigService
     json: bool
     verbose: bool
+
+
+def load_config(deps: Deps) -> Config:
+    """Load config, mapping config-file errors to a CliUsageError (exit 2)."""
+    try:
+        return deps.config_service.load()
+    except (OSError, yaml.YAMLError, ValidationError) as exc:
+        raise CliUsageError(f"config error: {exc}") from exc
 
 
 def common_parser() -> argparse.ArgumentParser:

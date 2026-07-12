@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 from pathlib import Path
 
 from steno10k.api.configsvc import ConfigService
 from steno10k.api.storage import Storage
 from steno10k.cli import commands, run
-from steno10k.cli.context import Deps
+from steno10k.cli.context import CliUsageError, Deps, ExitCode
 
 
 def _resolve_data_root(raw: str | None) -> Path:
@@ -39,4 +40,8 @@ def main(argv: list[str] | None = None) -> int:
         json=getattr(args, "json", False),
         verbose=getattr(args, "verbose", False),
     )
-    return int(args.func(args, deps))
+    try:
+        return int(args.func(args, deps))
+    except CliUsageError as exc:
+        print(str(exc), file=sys.stderr)
+        return int(ExitCode.USAGE)

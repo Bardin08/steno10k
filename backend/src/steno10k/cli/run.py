@@ -8,7 +8,7 @@ import sys
 # faster-whisper import path in unit tests.
 from steno10k.api.stages import build_registry
 from steno10k.api.storage import NotFound
-from steno10k.cli.context import Deps, ExitCode, common_parser
+from steno10k.cli.context import Deps, ExitCode, common_parser, load_config
 from steno10k.contracts.errors import ErrorLog
 from steno10k.contracts.events import Event, EventBus, EventKind
 from steno10k.contracts.names import StageName
@@ -65,7 +65,7 @@ def execute_run(
         print(str(exc), file=sys.stderr)
         return ExitCode.USAGE
 
-    cfg = deps.config_service.load()
+    cfg = load_config(deps)
     set_dir = deps.storage.set_dir(project, set_)
     bus = EventBus()
     bus.subscribe(lambda e: _print_event(e, verbose=verbose))

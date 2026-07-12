@@ -9,7 +9,7 @@ from pathlib import Path
 
 from steno10k.api.storage import NotFound
 from steno10k.cli import output
-from steno10k.cli.context import Deps, ExitCode, common_parser
+from steno10k.cli.context import Deps, ExitCode, common_parser, load_config
 from steno10k.contracts.domain import Recording
 from steno10k.lib.ingest import SUPPORTED_EXTENSIONS, normalized_filename
 
@@ -250,7 +250,7 @@ def add_config(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None
 
 
 def cmd_config_show(args: argparse.Namespace, deps: Deps) -> int:
-    cfg = deps.config_service.load()
+    cfg = load_config(deps)
     llm_key_present = bool(os.environ.get(cfg.llm.api_key_env))
     output.emit_config(cfg, llm_key_present, as_json=deps.json)
     return ExitCode.OK
