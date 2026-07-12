@@ -16,6 +16,7 @@ import {
   allProviders,
   providerBaseUrl,
 } from "../app/llmProviders";
+import { resolveEnabledStages } from "../app/stageDeps";
 
 type Cfg = Record<string, Record<string, unknown>>;
 
@@ -80,6 +81,10 @@ export function ConfigScreen() {
       },
     }));
   }
+  const stageFlags = Object.fromEntries(
+    STAGE_NAMES.map((s) => [s, stagesEnabled[s] !== false]),
+  );
+  const { enabled: enabledStages, cascaded } = resolveEnabledStages(stageFlags);
 
   const tr = sectionValue("transcription");
   const llm = sectionValue("llm");
@@ -299,12 +304,19 @@ export function ConfigScreen() {
           {section === "stages" && (
             <div className="grid grid-cols-2 gap-3">
               {STAGE_NAMES.map((s) => (
-                <Switch
-                  key={s}
-                  label={s}
-                  checked={stagesEnabled[s] !== false}
-                  onCheckedChange={(v) => toggleStage(s, v)}
-                />
+                <div key={s} className="flex items-center gap-1.5">
+                  <Switch
+                    label={s}
+                    checked={enabledStages.has(s)}
+                    disabled={s in cascaded}
+                    onCheckedChange={(v) => toggleStage(s, v)}
+                  />
+                  {s in cascaded && (
+                    <span className="text-[11px] text-ink-faint">
+                      · needs {cascaded[s]}
+                    </span>
+                  )}
+                </div>
               ))}
             </div>
           )}

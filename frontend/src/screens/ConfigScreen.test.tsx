@@ -274,3 +274,52 @@ test("LLM section: master switch, provider dropdown auto-fills base URL, no api 
   await user.click(masterSwitch);
   expect(masterSwitch).not.toBeChecked();
 });
+
+test("Stages section: disabling transcribe cascade-disables dependent switches", async () => {
+  vi.spyOn(hooks, "usePutConfig").mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.usePutConfig>);
+  vi.spyOn(hooks, "useSystem").mockReturnValue({
+    data: {
+      whisper_models: ["small", "large-v3"],
+      current_model: "small",
+      max_workers: 4,
+      data_root: "/data",
+      llm_key_present: true,
+    },
+    isLoading: false,
+  } as unknown as ReturnType<typeof hooks.useSystem>);
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      transcription: { model: "small" },
+      llm: {
+        model: "gpt-4o",
+        base_url: "",
+        api_key_env: "OPENAI_API_KEY",
+        enabled: true,
+      },
+      audio: { chunk_seconds: 600, overlap_seconds: 15 },
+      output: { save_bundle_docx: true, summary_filename: "summary.md" },
+      stages: { enabled: {} },
+    },
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+
+  const user = userEvent.setup();
+  renderConfig();
+  await user.click(screen.getByRole("button", { name: "Stages" }));
+
+  const transcribeSwitch = screen.getByRole("switch", { name: "transcribe" });
+  expect(transcribeSwitch).toBeChecked();
+  await user.click(transcribeSwitch);
+  expect(transcribeSwitch).not.toBeChecked();
+
+  const cleanSwitch = screen.getByRole("switch", { name: "clean" });
+  const summarizeSwitch = screen.getByRole("switch", { name: "summarize" });
+  expect(cleanSwitch).toBeDisabled();
+  expect(cleanSwitch).not.toBeChecked();
+  expect(summarizeSwitch).toBeDisabled();
+  expect(summarizeSwitch).not.toBeChecked();
+});
