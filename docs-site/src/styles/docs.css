@@ -1,0 +1,80 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: -0.006em;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 48px;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.topbar {
+  border-bottom: 1px solid var(--hairline);
+  background: var(--surface);
+}
+.topbar-in {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.brand { font-weight: 600; letter-spacing: -0.02em; }
+.brand .k { color: var(--accent); }
+.brand a { color: inherit; text-decoration: none; }
+
+.sidebar {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  padding: 32px 0;
+}
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  transition: background var(--dur-micro) var(--ease), color var(--dur-micro) var(--ease);
+}
+.sidebar a:hover { background: var(--surface-sink); color: var(--ink); }
+.sidebar a[aria-current="page"] { color: var(--accent-ink); background: var(--accent-wash); }
+
+.content {
+  padding: 40px 0 96px;
+  max-width: 72ch;
+}
+.content h1 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 2.6rem; line-height: 1.1; margin-bottom: 0.6em; }
+.content h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 1.8rem; margin: 1.8em 0 0.5em; }
+.content h3 { font-size: 1.15rem; font-weight: 600; margin: 1.4em 0 0.4em; }
+.content p { margin: 0.9em 0; }
+.content ul, .content ol { margin: 0.9em 0; padding-left: 1.4em; }
+.content li { margin: 0.3em 0; }
+.content a { color: var(--accent-ink); text-underline-offset: 2px; }
+.content code { font-family: "Geist Mono", ui-monospace, monospace; font-size: 0.9em; background: var(--surface-sink); padding: 0.1em 0.35em; border-radius: var(--r-sm); }
+.content pre { background: var(--ink); color: var(--paper); padding: 16px 18px; border-radius: var(--r-md); overflow-x: auto; margin: 1.2em 0; }
+.content pre code { background: none; padding: 0; color: inherit; }
+.content table { width: 100%; border-collapse: collapse; margin: 1.2em 0; font-size: 0.95em; }
+.content th, .content td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--hairline); }
+.content th { font-weight: 600; }
+.content blockquote { border-left: 3px solid var(--accent); padding-left: 16px; color: var(--ink-soft); margin: 1.2em 0; }
+
+#search { margin-left: auto; min-width: 220px; }
+
+@media (max-width: 820px) {
+  .shell { grid-template-columns: 1fr; gap: 0; }
+  .sidebar { position: static; padding: 16px 0; }
+}

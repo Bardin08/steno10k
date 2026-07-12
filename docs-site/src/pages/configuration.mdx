@@ -1,0 +1,41 @@
+---
+layout: ../layouts/DocsLayout.astro
+title: Configuration
+---
+
+# Configuration
+
+The pipeline is eight stages. Each caches to disk, so re-runs are cheap and
+partial runs are free. Any stage can be switched off from config or the UI;
+dependent stages cascade automatically.
+
+## The eight stages
+
+| # | Stage | Kind | What it does |
+| --- | --- | --- | --- |
+| 01 | normalize | local | Rename source files to safe, unicode-clean names. |
+| 02 | chunk | local | Split long audio into overlapping ffmpeg segments. |
+| 03 | transcribe | local | faster-whisper per chunk, in parallel, on CPU. |
+| 04 | clean | llm | Fix punctuation and recognition errors via LLM. |
+| 05 | merge | local | Concatenate raw + clean transcripts to markdown. |
+| 06 | summarize | llm | Produce `summary.md` from the merged transcript. |
+| 07 | bundle | local | Render transcript + summary to `.docx`. |
+| 08 | notify | local | Push results to Telegram — off by default. |
+
+## Choosing a Whisper model
+
+Only transcription is heavy — the LLM stages are remote calls. Pick the Whisper
+size that fits your machine:
+
+| Model | Disk | RAM / worker | Quality | Fits |
+| --- | --- | --- | --- | --- |
+| tiny | 75 MB | ~1 GB | rough | any laptop |
+| small | 490 MB | ~2 GB | good | 16 GB |
+| medium | 1.5 GB | ~3 GB | very good | 16 GB |
+| large-v3 | 3 GB | ~5 GB | best | workstation |
+
+## Disabling stages
+
+Turn off any stage you don't need — for example, disable `notify` (off by
+default) or skip the LLM `clean`/`summarize` stages to stay fully local.
+Disabling a stage automatically skips stages that depend on its output.
