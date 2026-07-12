@@ -5,7 +5,28 @@ from typing import Any
 from pydantic import BaseModel
 
 from steno10k.api.runq import Run
+from steno10k.contracts.config import Config
 from steno10k.contracts.domain import Project, Recording, RecordingSet
+
+
+class ErrorBody(BaseModel):
+    code: str
+    message: str
+    details: dict[str, Any] = {}
+
+
+class Envelope[T](BaseModel):
+    data: T | None = None
+    error: ErrorBody | None = None
+
+
+class CancelResult(BaseModel):
+    cancelled: bool
+
+
+class PutConfigResult(BaseModel):
+    config: Config
+    cascaded_off: list[str]
 
 
 class RecordingDTO(BaseModel):
