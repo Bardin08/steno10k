@@ -69,7 +69,10 @@ export function Select({
           <RadixSelect.Content
             position="popper"
             sideOffset={4}
-            className="z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-sm border border-hairline bg-surface shadow-[var(--shadow-soft)] [animation:modal-in_var(--dur)_var(--ease-editorial)]"
+            style={{
+              transformOrigin: "var(--radix-select-content-transform-origin)",
+            }}
+            className="z-50 max-h-64 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-sm border border-hairline bg-surface shadow-[var(--shadow-soft)] [animation:popper-in_var(--dur)_var(--ease-editorial)]"
           >
             <RadixSelect.Viewport className="p-1">
               {options.map((o) => (

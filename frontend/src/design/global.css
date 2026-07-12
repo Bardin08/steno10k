@@ -22,4 +22,20 @@
       transform: translateY(0) scale(1);
     }
   }
+
+  /* Entrance for Radix popper-positioned content (Select, DropdownMenu, …).
+     Unlike modal-in (which assumes a centered, transform-origin: 50% 48%
+     modal), popper content is already translated to its anchor point by
+     Radix — this animates only opacity + scale around that same origin, so
+     it doesn't fight the popper's own transform. */
+  @keyframes popper-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
