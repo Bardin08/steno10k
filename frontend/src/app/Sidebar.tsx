@@ -1,7 +1,15 @@
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import { NavLink, useNavigate, useParams } from "react-router";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
+  ArrowLineLeft,
+  ArrowLineRight,
   CaretDown,
   CaretRight,
   DotsThree,
@@ -23,6 +31,21 @@ import { CreateDialog } from "./CreateDialog";
 import { ProjectIcon } from "./projectIcons";
 
 const COLLAPSED_KEY = "steno10k.sidebar.collapsed";
+const RAILED_KEY = "steno10k.sidebar.railed";
+const WIDTH_KEY = "steno10k.sidebar.width";
+const DEFAULT_WIDTH = 248;
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 420;
+const RAIL_WIDTH = 52;
+
+function clampWidth(n: number) {
+  return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, n));
+}
+
+function readWidth(): number {
+  const raw = Number(localStorage.getItem(WIDTH_KEY));
+  return clampWidth(Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_WIDTH);
+}
 
 function reportError(e: unknown) {
   toast.error(e instanceof ApiError ? e.message : "Something went wrong");
@@ -173,6 +196,11 @@ export function Sidebar() {
     readCollapsed(),
   );
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
+  const [railed, setRailed] = useState(
+    () => localStorage.getItem(RAILED_KEY) === "true",
+  );
+  const [width, setWidth] = useState<number>(() => readWidth());
+  const dragState = useRef<{ startX: number; startWidth: number } | null>(null);
 
   const deleteSetProject =
     pendingDelete?.kind === "set" ? pendingDelete.project.slug : "";
@@ -183,6 +211,13 @@ export function Sidebar() {
     [projects, query],
   );
 
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sidebar-width",
+      railed ? `${RAIL_WIDTH}px` : `${width}px`,
+    );
+  }, [railed, width]);
+
   function toggleCollapsed(slug: string) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -191,6 +226,37 @@ export function Sidebar() {
       writeCollapsed(next);
       return next;
     });
+  }
+
+  function setRailedPersisted(next: boolean) {
+    setRailed(next);
+    localStorage.setItem(RAILED_KEY, String(next));
+  }
+
+  function handleDragStart(e: ReactMouseEvent) {
+    dragState.current = { startX: e.clientX, startWidth: width };
+    window.addEventListener("mousemove", handleDragMove);
+    window.addEventListener("mouseup", handleDragEnd);
+  }
+
+  function handleDragMove(e: MouseEvent) {
+    if (!dragState.current) return;
+    const next = clampWidth(
+      dragState.current.startWidth + (e.clientX - dragState.current.startX),
+    );
+    setWidth(next);
+  }
+
+  function handleDragEnd(e: MouseEvent) {
+    if (dragState.current) {
+      const next = clampWidth(
+        dragState.current.startWidth + (e.clientX - dragState.current.startX),
+      );
+      localStorage.setItem(WIDTH_KEY, String(next));
+    }
+    dragState.current = null;
+    window.removeEventListener("mousemove", handleDragMove);
+    window.removeEventListener("mouseup", handleDragEnd);
   }
 
   async function confirmDelete() {
@@ -223,160 +289,221 @@ export function Sidebar() {
     );
   }
 
-  return (
-    <nav className="flex h-full flex-col gap-4 p-4">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
-          Library
-        </span>
-        <Button
-          variant="ghost"
-          className="px-2 py-1 text-[11px]"
-          disabled={createProject.isPending}
-          onClick={() => setProjectOpen(true)}
-        >
-          <Plus size={12} /> project
-        </Button>
-      </div>
-
-      <CreateDialog
-        open={projectOpen}
-        onOpenChange={setProjectOpen}
-        title="New project"
-        label="Project title"
-        submitLabel="Create project"
-        pending={createProject.isPending}
-        existingNames={(projects ?? []).map((p) => p.title)}
-        withIconPicker
-        onSubmit={(title, icon) =>
-          createProject.mutate(
-            { title, icon },
-            {
-              onSuccess: () => setProjectOpen(false),
-              onError: reportError,
-            },
-          )
-        }
-      />
-
-      {projects && projects.length === 0 && (
-        <EmptyState
-          title="No projects yet"
-          description="Create a project to begin."
-          icon={<FolderSimple size={24} weight="duotone" />}
-        />
-      )}
-
-      {projects && projects.length > 0 && (
-        <Input
-          value={query}
-          placeholder="Filter projects & sets…"
-          aria-label="Filter projects and sets"
-          onChange={(e) => setQuery(e.target.value)}
-          className="text-[13px]"
-        />
-      )}
-
-      <ul className="flex flex-col gap-3">
-        {filtered.map(({ project: p, sets, forceExpand }) => {
-          const isCollapsed = collapsed.has(p.slug) && !forceExpand;
-          return (
-            <li key={p.id}>
-              <div className="group flex items-center justify-between">
-                <div className="flex min-w-0 items-center gap-1">
-                  <button
-                    type="button"
-                    aria-label={
-                      isCollapsed ? `expand ${p.title}` : `collapse ${p.title}`
-                    }
-                    onClick={() => toggleCollapsed(p.slug)}
-                    className="grid h-5 w-5 shrink-0 place-items-center text-ink-faint hover:text-ink"
-                  >
-                    {isCollapsed ? (
-                      <CaretRight size={12} />
-                    ) : (
-                      <CaretDown size={12} />
-                    )}
-                  </button>
-                  <ProjectIcon icon={p.icon} />
-                  <span className="truncate text-sm font-medium text-ink">
-                    {p.title}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <NewSet
-                    project={p.slug}
-                    existingNames={p.sets.map((s) => s.title)}
-                  />
-                  <RowMenu
-                    triggerLabel={`more actions for ${p.title}`}
-                    deleteLabel="Delete project"
-                    onDelete={() =>
-                      setPendingDelete({ kind: "project", project: p })
-                    }
-                  />
-                </div>
-              </div>
-              {!isCollapsed && (
-                <ul className="mt-1 flex flex-col">
-                  {sets.map((s) => (
-                    <li key={s.id} className="group flex items-center">
-                      <NavLink
-                        to={`/p/${p.slug}/s/${s.slug}`}
-                        className={({ isActive }) =>
-                          `block flex-1 truncate rounded-sm px-2 py-1 text-[13px] ${isActive ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"}`
-                        }
-                      >
-                        {s.title}
-                      </NavLink>
-                      <RowMenu
-                        triggerLabel={`more actions for ${s.title}`}
-                        deleteLabel="Delete set"
-                        onDelete={() =>
-                          setPendingDelete({ kind: "set", project: p, set: s })
-                        }
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-
-      <Modal
-        open={pendingDelete !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingDelete(null);
-        }}
-        title={
-          pendingDelete
-            ? `Delete "${pendingDelete.kind === "project" ? pendingDelete.project.title : pendingDelete.set.title}"?`
-            : ""
-        }
+  if (railed) {
+    return (
+      <nav
+        aria-label="Library rail"
+        className="flex h-full flex-col items-center gap-2 p-2"
       >
-        {pendingDelete && (
-          <div className="flex flex-col gap-4">
-            <p>
-              {pendingDelete.kind === "project"
-                ? `This deletes ${pendingDelete.project.sets.length} set${pendingDelete.project.sets.length === 1 ? "" : "s"} and everything in them. This cannot be undone.`
-                : "This deletes the set and everything in it. This cannot be undone."}
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setPendingDelete(null)}>
-                Cancel
-              </Button>
-              <Button
-                className="bg-accent-ink hover:opacity-90"
-                onClick={() => void confirmDelete()}
-              >
-                Delete
-              </Button>
-            </div>
+        <button
+          type="button"
+          aria-label="expand sidebar"
+          onClick={() => setRailedPersisted(false)}
+          className="grid h-8 w-8 place-items-center rounded-sm text-ink-faint hover:text-ink"
+        >
+          <ArrowLineRight size={14} />
+        </button>
+        {projects?.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            aria-label={`Open ${p.title}`}
+            onClick={() => {
+              if (p.sets.length > 0) {
+                navigate(`/p/${p.slug}/s/${p.sets[0].slug}`);
+              } else {
+                setRailedPersisted(false);
+              }
+            }}
+            className="grid h-8 w-8 place-items-center rounded-sm text-ink-soft hover:text-ink"
+          >
+            <ProjectIcon icon={p.icon} />
+          </button>
+        ))}
+      </nav>
+    );
+  }
+
+  return (
+    <div className="relative flex h-full">
+      <nav className="flex h-full flex-1 flex-col gap-4 p-4">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+            Library
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              className="px-2 py-1 text-[11px]"
+              disabled={createProject.isPending}
+              onClick={() => setProjectOpen(true)}
+            >
+              <Plus size={12} /> project
+            </Button>
+            <button
+              type="button"
+              aria-label="collapse sidebar"
+              onClick={() => setRailedPersisted(true)}
+              className="grid h-7 w-7 place-items-center rounded-sm text-ink-faint hover:text-ink"
+            >
+              <ArrowLineLeft size={14} />
+            </button>
           </div>
+        </div>
+
+        <CreateDialog
+          open={projectOpen}
+          onOpenChange={setProjectOpen}
+          title="New project"
+          label="Project title"
+          submitLabel="Create project"
+          pending={createProject.isPending}
+          existingNames={(projects ?? []).map((p) => p.title)}
+          withIconPicker
+          onSubmit={(title, icon) =>
+            createProject.mutate(
+              { title, icon },
+              {
+                onSuccess: () => setProjectOpen(false),
+                onError: reportError,
+              },
+            )
+          }
+        />
+
+        {projects && projects.length === 0 && (
+          <EmptyState
+            title="No projects yet"
+            description="Create a project to begin."
+            icon={<FolderSimple size={24} weight="duotone" />}
+          />
         )}
-      </Modal>
-    </nav>
+
+        {projects && projects.length > 0 && (
+          <Input
+            value={query}
+            placeholder="Filter projects & sets…"
+            aria-label="Filter projects and sets"
+            onChange={(e) => setQuery(e.target.value)}
+            className="text-[13px]"
+          />
+        )}
+
+        <ul className="flex flex-col gap-3">
+          {filtered.map(({ project: p, sets, forceExpand }) => {
+            const isCollapsed = collapsed.has(p.slug) && !forceExpand;
+            return (
+              <li key={p.id}>
+                <div className="group flex items-center justify-between">
+                  <div className="flex min-w-0 items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label={
+                        isCollapsed
+                          ? `expand ${p.title}`
+                          : `collapse ${p.title}`
+                      }
+                      onClick={() => toggleCollapsed(p.slug)}
+                      className="grid h-5 w-5 shrink-0 place-items-center text-ink-faint hover:text-ink"
+                    >
+                      {isCollapsed ? (
+                        <CaretRight size={12} />
+                      ) : (
+                        <CaretDown size={12} />
+                      )}
+                    </button>
+                    <ProjectIcon icon={p.icon} />
+                    <span className="truncate text-sm font-medium text-ink">
+                      {p.title}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <NewSet
+                      project={p.slug}
+                      existingNames={p.sets.map((s) => s.title)}
+                    />
+                    <RowMenu
+                      triggerLabel={`more actions for ${p.title}`}
+                      deleteLabel="Delete project"
+                      onDelete={() =>
+                        setPendingDelete({ kind: "project", project: p })
+                      }
+                    />
+                  </div>
+                </div>
+                {!isCollapsed && (
+                  <ul className="mt-1 flex flex-col">
+                    {sets.map((s) => (
+                      <li key={s.id} className="group flex items-center">
+                        <NavLink
+                          to={`/p/${p.slug}/s/${s.slug}`}
+                          className={({ isActive }) =>
+                            `block flex-1 truncate rounded-sm px-2 py-1 text-[13px] ${isActive ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"}`
+                          }
+                        >
+                          {s.title}
+                        </NavLink>
+                        <RowMenu
+                          triggerLabel={`more actions for ${s.title}`}
+                          deleteLabel="Delete set"
+                          onDelete={() =>
+                            setPendingDelete({
+                              kind: "set",
+                              project: p,
+                              set: s,
+                            })
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        <Modal
+          open={pendingDelete !== null}
+          onOpenChange={(open) => {
+            if (!open) setPendingDelete(null);
+          }}
+          title={
+            pendingDelete
+              ? `Delete "${pendingDelete.kind === "project" ? pendingDelete.project.title : pendingDelete.set.title}"?`
+              : ""
+          }
+        >
+          {pendingDelete && (
+            <div className="flex flex-col gap-4">
+              <p>
+                {pendingDelete.kind === "project"
+                  ? `This deletes ${pendingDelete.project.sets.length} set${pendingDelete.project.sets.length === 1 ? "" : "s"} and everything in them. This cannot be undone.`
+                  : "This deletes the set and everything in it. This cannot be undone."}
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setPendingDelete(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-accent-ink hover:opacity-90"
+                  onClick={() => void confirmDelete()}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal>
+      </nav>
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize sidebar"
+        tabIndex={-1}
+        onMouseDown={handleDragStart}
+        className="absolute inset-y-0 right-0 w-1 cursor-col-resize hover:bg-hairline-strong"
+      />
+    </div>
   );
 }

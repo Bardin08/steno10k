@@ -250,3 +250,50 @@ test("deleting a project via the kebab menu navigates home when it was the curre
     expect(navigateSpy).toHaveBeenCalledWith("/");
   });
 });
+
+test("collapse-all rails the sidebar, persists it, and renders icon-only rows", () => {
+  localStorage.clear();
+  vi.spyOn(hooks, "useProjects").mockReturnValue({
+    data: [
+      { id: "1", slug: "con-law", title: "Con Law", icon: null, sets: [] },
+    ],
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useProjects>);
+
+  renderSidebar();
+  expect(screen.getByText("Con Law")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /collapse sidebar/i }));
+
+  expect(localStorage.getItem("steno10k.sidebar.railed")).toBe("true");
+  expect(screen.queryByText("Con Law")).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Open Con Law" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: /expand sidebar/i }),
+  ).toBeInTheDocument();
+});
+
+test("dragging the resize handle clamps the persisted width to [200, 420]", () => {
+  localStorage.clear();
+  vi.spyOn(hooks, "useProjects").mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useProjects>);
+
+  renderSidebar();
+  const handle = screen.getByRole("separator", { name: /resize sidebar/i });
+
+  fireEvent.mouseDown(handle, { clientX: 0 });
+  fireEvent.mouseMove(window, { clientX: 1000 });
+  fireEvent.mouseUp(window, { clientX: 1000 });
+  expect(localStorage.getItem("steno10k.sidebar.width")).toBe("420");
+
+  fireEvent.mouseDown(handle, { clientX: 0 });
+  fireEvent.mouseMove(window, { clientX: -1000 });
+  fireEvent.mouseUp(window, { clientX: -1000 });
+  expect(localStorage.getItem("steno10k.sidebar.width")).toBe("200");
+});
