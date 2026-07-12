@@ -24,3 +24,11 @@ def test_project_and_set_lifecycle(tmp_path: Path) -> None:
 
     r = c.get("/api/v1/projects/nope")
     assert r.status_code == 404 and r.json()["error"]["code"] == "project_not_found"
+
+
+def test_create_project_persists_icon(tmp_path: Path) -> None:
+    c = _client(tmp_path)
+    body = c.post("/api/v1/projects", json={"title": "Law", "icon": "scales"}).json()["data"]
+    assert body["icon"] == "scales"
+    listed = c.get("/api/v1/projects").json()["data"]
+    assert any(p["slug"] == body["slug"] and p["icon"] == "scales" for p in listed)

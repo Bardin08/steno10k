@@ -66,6 +66,11 @@ class CreateTitle(BaseModel):
     title: str
 
 
+class CreateProject(BaseModel):
+    title: str
+    icon: str | None = None
+
+
 class RunDTO(BaseModel):
     id: str
     project: str

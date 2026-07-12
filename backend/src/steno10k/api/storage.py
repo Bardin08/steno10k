@@ -29,12 +29,12 @@ class Storage:
 
     # -- projects ----------------------------------------------------------
 
-    def create_project(self, title: str) -> Project:
+    def create_project(self, title: str, icon: str | None = None) -> Project:
         existing = {p.name for p in self._root.iterdir()} if self._root.is_dir() else set()
         slug = resolve_collision(existing, slugify(title))
         project_dir = self._root / slug
         project_dir.mkdir(parents=True, exist_ok=True)
-        project = Project(slug=slug, title=title, id=new_id())
+        project = Project(slug=slug, title=title, id=new_id(), icon=icon)
         self._save_project(project)
         return project
 
@@ -52,7 +52,9 @@ class Storage:
         if not project_file.is_file():
             raise NotFound(f"project not found: {slug}")
         raw = json.loads(project_file.read_text(encoding="utf-8"))
-        project = Project(slug=raw["slug"], title=raw["title"], id=raw["id"])
+        project = Project(
+            slug=raw["slug"], title=raw["title"], id=raw["id"], icon=raw.get("icon")
+        )
         project.sets = self.list_sets(slug)
         return project
 
@@ -65,7 +67,12 @@ class Storage:
     def _save_project(self, project: Project) -> None:
         project_file = self._root / project.slug / _PROJECT_FILE
         project_file.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"id": project.id, "slug": project.slug, "title": project.title}
+        payload = {
+            "id": project.id,
+            "slug": project.slug,
+            "title": project.title,
+            "icon": project.icon,
+        }
         project_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     # -- sets ----------------------------------------------------------

@@ -5,7 +5,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends
 
 from steno10k.api.deps import get_storage
-from steno10k.api.dto import CreateTitle, ProjectDTO
+from steno10k.api.dto import CreateProject, ProjectDTO
 from steno10k.api.envelope import ApiError, ok
 from steno10k.api.storage import NotFound, Storage
 
@@ -14,9 +14,9 @@ router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
 @router.post("")
 def create_project(
-    body: CreateTitle, storage: Annotated[Storage, Depends(get_storage)]
+    body: CreateProject, storage: Annotated[Storage, Depends(get_storage)]
 ) -> dict[str, Any]:
-    project = storage.create_project(body.title)
+    project = storage.create_project(body.title, icon=body.icon)
     return ok(ProjectDTO.from_domain(project).model_dump())
 
 
