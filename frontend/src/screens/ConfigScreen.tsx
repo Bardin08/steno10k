@@ -189,14 +189,16 @@ export function ConfigScreen() {
                     <div className="flex gap-2">
                       <Button
                         type="button"
-                        disabled={!newProviderName || !newProviderUrl}
+                        disabled={
+                          !newProviderName.trim() || !newProviderUrl.trim()
+                        }
                         onClick={() => {
-                          const next = addCustomProvider({
-                            name: newProviderName,
-                            baseUrl: newProviderUrl,
-                          });
+                          const name = newProviderName.trim();
+                          const baseUrl = newProviderUrl.trim();
+                          if (!name || !baseUrl) return;
+                          const next = addCustomProvider({ name, baseUrl });
                           setProviders([...next]);
-                          patch("llm", "base_url", newProviderUrl);
+                          patch("llm", "base_url", baseUrl);
                           setNewProviderName("");
                           setNewProviderUrl("");
                           setAddingProvider(false);
@@ -273,16 +275,15 @@ export function ConfigScreen() {
                   <Input
                     id="summary-filename-stem"
                     value={String(output.summary_filename ?? "").replace(
-                      /\.md$/,
+                      /\.md$/i,
                       "",
                     )}
-                    onChange={(e) =>
-                      patch(
-                        "output",
-                        "summary_filename",
-                        `${e.target.value}.md`,
-                      )
-                    }
+                    onChange={(e) => {
+                      const stem =
+                        e.target.value.replace(/\.md$/i, "").trim() ||
+                        "summary";
+                      patch("output", "summary_filename", `${stem}.md`);
+                    }}
                   />
                   <span className="font-mono text-sm text-ink-faint">.md</span>
                 </div>

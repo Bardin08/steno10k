@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import { makeQueryClient } from "../app/queryClient";
@@ -151,8 +151,8 @@ test("transcription section drops Device/Compute type; filename stem locks .md; 
   const stemInput = screen.getByLabelText(/summary filename/i);
   expect(stemInput).toHaveValue("summary");
   expect(screen.getByText(".md")).toBeInTheDocument();
-  await user.clear(stemInput);
-  await user.type(stemInput, "notes");
+  // Entering a value that already ends in ".md" must not double the suffix.
+  fireEvent.change(stemInput, { target: { value: "notes.md" } });
 
   const bundleSwitch = screen.getByRole("switch", {
     name: "Save bundle .docx",
@@ -172,6 +172,52 @@ test("transcription section drops Device/Compute type; filename stem locks .md; 
   expect(saved.output.summary_filename).toBe("notes.md");
   expect(saved.output.save_bundle_docx).toBe(false);
   expect(saved.stages.enabled.transcribe).toBe(false);
+});
+
+test("clearing the filename stem saves the default summary.md, not .md", async () => {
+  const mutate = vi.fn();
+  vi.spyOn(hooks, "usePutConfig").mockReturnValue({
+    mutate,
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.usePutConfig>);
+  vi.spyOn(hooks, "useSystem").mockReturnValue({
+    data: {
+      whisper_models: ["small", "large-v3"],
+      current_model: "small",
+      max_workers: 4,
+      data_root: "/data",
+      llm_key_present: true,
+    },
+    isLoading: false,
+  } as unknown as ReturnType<typeof hooks.useSystem>);
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      transcription: { model: "small" },
+      llm: {
+        model: "gpt-4o",
+        base_url: "",
+        api_key_env: "OPENAI_API_KEY",
+        enabled: true,
+      },
+      audio: { chunk_seconds: 600, overlap_seconds: 15 },
+      output: { save_bundle_docx: true, summary_filename: "summary.md" },
+      stages: { enabled: { transcribe: true, notify: false } },
+    },
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+
+  const user = userEvent.setup();
+  renderConfig();
+
+  await user.click(screen.getByRole("button", { name: "Audio & Output" }));
+  fireEvent.change(screen.getByLabelText(/summary filename/i), {
+    target: { value: "" },
+  });
+  await user.click(screen.getByRole("button", { name: "Save config" }));
+
+  expect(mutate).toHaveBeenCalledTimes(1);
+  expect(mutate.mock.calls[0][0].output.summary_filename).toBe("summary.md");
 });
 
 test("LLM section: master switch, provider dropdown auto-fills base URL, no api key env input, key status line", async () => {
