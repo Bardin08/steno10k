@@ -1,0 +1,33 @@
+---
+layout: ../layouts/DocsLayout.astro
+title: Getting started
+---
+
+# Getting started
+
+steno10k runs as a single container with one mounted volume. Point it at a
+folder of recordings and it produces a clean transcript and a summary.
+
+## Run it in one container
+
+```bash
+docker run --rm \
+  -v ~/steno:/data \
+  ghcr.io/bardin08/steno10k:latest
+```
+
+- `-v ~/steno:/data` mounts your working folder. Recordings go in, results come
+  out in the same tree.
+- Transcription runs locally with Whisper; only the clean/summarize stages call
+  an OpenAI-compatible model, and only if you configure one.
+
+## Your first run
+
+1. Drop audio files into a project folder under your mounted volume, e.g.
+   `~/steno/constitutional-law/lecture-07/`.
+2. Start the container. steno10k normalizes filenames, chunks long audio,
+   and transcribes each chunk in parallel.
+3. When it finishes, the folder contains `clean_transcript.md` and
+   `summary.md` alongside the source audio.
+
+Next: tune what runs in **[Configuration](./configuration/)**.
