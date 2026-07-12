@@ -104,3 +104,51 @@ test("blocks creating a project whose name already exists", () => {
   expect(mutate).not.toHaveBeenCalled();
   expect(screen.getByText(/already exists/i)).toBeInTheDocument();
 });
+
+test("filters projects and sets by a live search query", () => {
+  vi.spyOn(hooks, "useProjects").mockReturnValue({
+    data: [
+      {
+        id: "1",
+        slug: "con-law",
+        title: "Con Law",
+        sets: [
+          {
+            id: "s1",
+            slug: "judicial-review",
+            title: "Judicial Review",
+            project_slug: "con-law",
+            recordings: [],
+            stages: {},
+          },
+        ],
+      },
+      {
+        id: "2",
+        slug: "health-law",
+        title: "Health Law",
+        sets: [
+          {
+            id: "s2",
+            slug: "insurance",
+            title: "Insurance",
+            project_slug: "health-law",
+            recordings: [],
+            stages: {},
+          },
+        ],
+      },
+    ],
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useProjects>);
+
+  renderSidebar();
+  fireEvent.change(screen.getByPlaceholderText(/filter/i), {
+    target: { value: "hea" },
+  });
+
+  expect(screen.queryByText("Con Law")).not.toBeInTheDocument();
+  expect(screen.getByText("Health Law")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Insurance/ })).toBeInTheDocument();
+});

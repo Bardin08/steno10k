@@ -1,14 +1,49 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { NavLink } from "react-router";
 import { FolderSimple, Plus } from "@phosphor-icons/react";
-import { Button, EmptyState, Skeleton } from "../components";
+import { Button, EmptyState, Input, Skeleton } from "../components";
 import { toast } from "../components";
+import type { ProjectDTO, SetDTO } from "../api/types";
 import { useCreateProject, useCreateSet, useProjects } from "../api/hooks";
 import { ApiError } from "../api/client";
 import { CreateDialog } from "./CreateDialog";
 
 function reportError(e: unknown) {
   toast.error(e instanceof ApiError ? e.message : "Something went wrong");
+}
+
+interface FilteredProject {
+  project: ProjectDTO;
+  sets: SetDTO[];
+  forceExpand: boolean;
+}
+
+function filterProjects(
+  projects: ProjectDTO[] | undefined,
+  query: string,
+): FilteredProject[] {
+  const q = query.trim().toLowerCase();
+  if (!projects) return [];
+  if (!q) {
+    return projects.map((p) => ({
+      project: p,
+      sets: p.sets,
+      forceExpand: false,
+    }));
+  }
+  const result: FilteredProject[] = [];
+  for (const p of projects) {
+    const titleMatch = p.title.toLowerCase().includes(q);
+    const matchingSets = p.sets.filter((s) =>
+      s.title.toLowerCase().includes(q),
+    );
+    if (titleMatch) {
+      result.push({ project: p, sets: p.sets, forceExpand: true });
+    } else if (matchingSets.length > 0) {
+      result.push({ project: p, sets: matchingSets, forceExpand: true });
+    }
+  }
+  return result;
 }
 
 function NewSet({
@@ -51,6 +86,12 @@ export function Sidebar() {
   const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
   const [projectOpen, setProjectOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(
+    () => filterProjects(projects, query),
+    [projects, query],
+  );
 
   if (isLoading) {
     return (
@@ -105,8 +146,18 @@ export function Sidebar() {
         />
       )}
 
+      {projects && projects.length > 0 && (
+        <Input
+          value={query}
+          placeholder="Filter projects & sets…"
+          aria-label="Filter projects and sets"
+          onChange={(e) => setQuery(e.target.value)}
+          className="text-[13px]"
+        />
+      )}
+
       <ul className="flex flex-col gap-3">
-        {projects?.map((p) => (
+        {filtered.map(({ project: p, sets }) => (
           <li key={p.id}>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-ink">{p.title}</span>
@@ -116,7 +167,7 @@ export function Sidebar() {
               />
             </div>
             <ul className="mt-1 flex flex-col">
-              {p.sets.map((s) => (
+              {sets.map((s) => (
                 <li key={s.id}>
                   <NavLink
                     to={`/p/${p.slug}/s/${s.slug}`}
