@@ -6,7 +6,7 @@ from pathlib import Path
 
 from steno10k.api.configsvc import ConfigService
 from steno10k.api.storage import Storage
-from steno10k.cli import commands
+from steno10k.cli import commands, run
 from steno10k.cli.context import Deps
 
 
@@ -24,6 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     commands.add_import(sub)
     commands.add_recordings(sub)
     commands.add_status(sub)
+    run.add_run(sub)
     return parser
 
 
