@@ -1,0 +1,51 @@
+---
+import { nav } from "../nav";
+import "../styles/tokens.css";
+import "../styles/docs.css";
+
+const { title } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const here = Astro.url.pathname.replace(/\/$/, "");
+
+function hrefFor(slug: string) {
+  return slug ? `${base}/${slug}/` : `${base}/`;
+}
+function isCurrent(slug: string) {
+  return hrefFor(slug).replace(/\/$/, "") === here;
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title ? `${title} — steno10k docs` : "steno10k docs"}</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-in">
+        <div class="brand">
+          <a href={`${base}/`}><span class="n">steno</span><span class="k">10k</span> docs</a>
+        </div>
+        <div id="search"></div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <nav>
+          {nav.map((item) => (
+            <a href={hrefFor(item.slug)} aria-current={isCurrent(item.slug) ? "page" : undefined}>
+              {item.title}
+            </a>
+          ))}
+        </nav>
+      </aside>
+
+      <main class="content" data-pagefind-body>
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
