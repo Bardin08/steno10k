@@ -207,6 +207,37 @@ def cmd_recordings_rm(args: argparse.Namespace, deps: Deps) -> int:
     return ExitCode.OK
 
 
+# -- status ------------------------------------------------------------------
+
+
+def add_status(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    p = sub.add_parser(
+        "status",
+        parents=[common_parser()],
+        help="show a set's recordings, stages, artifacts",
+    )
+    p.add_argument("project")
+    p.add_argument("set_", metavar="SET")
+    p.set_defaults(func=cmd_status)
+
+
+def cmd_status(args: argparse.Namespace, deps: Deps) -> int:
+    try:
+        s = deps.storage.get_set(args.project, args.set_)
+    except NotFound as exc:
+        print(str(exc), file=sys.stderr)
+        return ExitCode.USAGE
+    set_dir = deps.storage.set_dir(args.project, args.set_)
+    recorded = {r.normalized_name for r in s.recordings}
+    artifacts = sorted(
+        f.name
+        for f in set_dir.iterdir()
+        if f.is_file() and f.name not in recorded and f.name != "manifest.json"
+    )
+    output.emit_status(s, artifacts, as_json=deps.json)
+    return ExitCode.OK
+
+
 # -- shared ------------------------------------------------------------------
 
 
