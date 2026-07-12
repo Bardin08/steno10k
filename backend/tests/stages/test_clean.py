@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from stages.support import FakeLLM, make_ctx, make_manifest, seed_raw
 from steno10k.contracts.stage import RunOptions
 from steno10k.contracts.status import StageStatus
 from steno10k.stages.clean import CleanStage
-from tests.stages.support import FakeLLM, make_ctx, make_manifest, seed_raw
 
 
 def test_name_and_deps() -> None:

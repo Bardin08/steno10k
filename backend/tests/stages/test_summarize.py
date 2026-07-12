@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from stages.support import FakeLLM, make_ctx
 from steno10k.contracts.status import StageStatus
 from steno10k.stages.summarize import SummarizeStage
-from tests.stages.support import FakeLLM, make_ctx
 
 
 def _seed_merged_clean(set_dir: Path, text: str) -> None:

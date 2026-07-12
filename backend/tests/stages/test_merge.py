@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from stages.support import make_ctx, make_manifest, seed_clean, seed_raw
 from steno10k.contracts.status import StageStatus
 from steno10k.stages.merge import MergeStage
-from tests.stages.support import make_ctx, make_manifest, seed_clean, seed_raw
 
 
 def test_name_and_deps() -> None:

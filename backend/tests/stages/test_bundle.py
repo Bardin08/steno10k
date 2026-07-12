@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 from docx import Document
 
+from stages.support import make_ctx
 from steno10k.contracts.config import Config
 from steno10k.contracts.stage import RunOptions
 from steno10k.contracts.status import StageStatus
 from steno10k.stages.bundle import BundleStage
-from tests.stages.support import make_ctx
 
 
 def _seed(set_dir: Path, *, clean: str | None = None, summary: str | None = None) -> None:

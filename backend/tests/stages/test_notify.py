@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from stages.support import RecordingBus, make_ctx
 from steno10k.contracts.events import EventKind
 from steno10k.contracts.status import StageStatus
 from steno10k.stages.notify import NotifyStage
-from tests.stages.support import RecordingBus, make_ctx
 
 
 def _touch(path: Path, text: str = "x") -> None:
