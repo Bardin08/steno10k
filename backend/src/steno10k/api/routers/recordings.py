@@ -10,38 +10,12 @@ from steno10k.api.dto import Envelope, RecordingDTO
 from steno10k.api.envelope import ApiError, ok
 from steno10k.api.storage import NotFound, Storage
 from steno10k.contracts.domain import Recording
-from steno10k.contracts.slug import resolve_collision, slugify
+from steno10k.lib.ingest import SUPPORTED_EXTENSIONS, normalized_filename
 
 router = APIRouter(prefix="/api/v1/projects/{project}/sets/{set_}/recordings", tags=["recordings"])
 
-# Audio containers the pipeline's ffmpeg-based chunker can read. Extend as needed.
-_SUPPORTED_EXTENSIONS = {
-    ".mp3",
-    ".wav",
-    ".m4a",
-    ".flac",
-    ".ogg",
-    ".aac",
-    ".wma",
-    ".mp4",
-    ".mov",
-    ".webm",
-}
-
 _MAX_FILE_BYTES = 1024**3  # 1 GB
 _READ_CHUNK_BYTES = 1024 * 1024  # 1 MiB
-
-
-def _normalized_filename(source_name: str, existing: set[str]) -> str:
-    """Slugify the stem (F1 slug rules) and dedupe against files already in the set dir."""
-    stem = Path(source_name).stem
-    suffix = Path(source_name).suffix.lower()
-    base_slug = slugify(stem)
-    # resolve_collision works on bare names (no extension); dedupe with the
-    # extension re-attached so "a.m4a" + "a.m4a" -> "a_2.m4a", not "a.m4a_2".
-    existing_stems = {Path(name).stem for name in existing if Path(name).suffix.lower() == suffix}
-    slug = resolve_collision(existing_stems, base_slug)
-    return f"{slug}{suffix}"
 
 
 async def _write_capped(upload: UploadFile, dest: Path) -> int:
@@ -82,7 +56,7 @@ async def upload_recordings(
     for f in files:
         source_name = f.filename or ""
         suffix = Path(source_name).suffix.lower()
-        if suffix not in _SUPPORTED_EXTENSIONS:
+        if suffix not in SUPPORTED_EXTENSIONS:
             raise ApiError(422, "unsupported_type", f"unsupported file type: {source_name!r}")
 
     existing = {p.name for p in set_dir.iterdir()} if set_dir.is_dir() else set()
@@ -90,7 +64,7 @@ async def upload_recordings(
     written: list[Path] = []
     for f in files:
         source_name = f.filename or "upload"
-        normalized_name = _normalized_filename(source_name, existing)
+        normalized_name = normalized_filename(source_name, existing)
         existing.add(normalized_name)
         dest = set_dir / normalized_name
         try:
