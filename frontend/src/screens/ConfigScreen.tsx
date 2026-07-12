@@ -6,6 +6,7 @@ import {
   Input,
   Select,
   Skeleton,
+  Switch,
   toast,
 } from "../components";
 import { ApiError } from "../api/client";
@@ -129,20 +130,6 @@ export function ConfigScreen() {
                 onValueChange={(v) => patch("transcription", "model", v)}
                 options={models.map((m) => ({ value: m }))}
               />
-              <Input
-                label="Device"
-                value={String(tr.device ?? "")}
-                onChange={(e) =>
-                  patch("transcription", "device", e.target.value)
-                }
-              />
-              <Input
-                label="Compute type"
-                value={String(tr.compute_type ?? "")}
-                onChange={(e) =>
-                  patch("transcription", "compute_type", e.target.value)
-                }
-              />
             </div>
           )}
 
@@ -197,19 +184,35 @@ export function ConfigScreen() {
                   )
                 }
               />
-              <Input
-                label="Summary filename"
-                value={String(output.summary_filename ?? "")}
-                onChange={(e) =>
-                  patch("output", "summary_filename", e.target.value)
-                }
-              />
-              <Checkbox
+              <div>
+                <label
+                  htmlFor="summary-filename-stem"
+                  className="mb-1.5 block text-sm font-medium text-ink"
+                >
+                  Summary filename
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    id="summary-filename-stem"
+                    value={String(output.summary_filename ?? "").replace(
+                      /\.md$/,
+                      "",
+                    )}
+                    onChange={(e) =>
+                      patch(
+                        "output",
+                        "summary_filename",
+                        `${e.target.value}.md`,
+                      )
+                    }
+                  />
+                  <span className="font-mono text-sm text-ink-faint">.md</span>
+                </div>
+              </div>
+              <Switch
                 label="Save bundle .docx"
                 checked={Boolean(output.save_bundle_docx)}
-                onChange={(e) =>
-                  patch("output", "save_bundle_docx", e.target.checked)
-                }
+                onCheckedChange={(v) => patch("output", "save_bundle_docx", v)}
               />
             </div>
           )}
@@ -217,11 +220,11 @@ export function ConfigScreen() {
           {section === "stages" && (
             <div className="grid grid-cols-2 gap-3">
               {STAGE_NAMES.map((s) => (
-                <Checkbox
+                <Switch
                   key={s}
                   label={s}
                   checked={stagesEnabled[s] !== false}
-                  onChange={(e) => toggleStage(s, e.target.checked)}
+                  onCheckedChange={(v) => toggleStage(s, v)}
                 />
               ))}
             </div>
