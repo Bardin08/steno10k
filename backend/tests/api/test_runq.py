@@ -7,13 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from steno10k.api.runq import RunQueue, RunStatus
+from steno10k.api.runq import RunQueue, RunStatus, _make_llm
 from steno10k.api.storage import Storage
-from steno10k.contracts.config import Config
+from steno10k.contracts.config import Config, LLMConfig
 from steno10k.contracts.names import StageName
 from steno10k.contracts.registry import StageRegistry
 from steno10k.contracts.stage import RunOptions, StageContext, StageResult
 from steno10k.contracts.status import StageStatus
+from steno10k.lib.llm import OpenAICompatibleClient
 
 
 def _wait(pred: Callable[[], bool], timeout: float = 2.0) -> None:
@@ -207,5 +208,108 @@ def test_cancel_during_running_then_exception_stays_cancelled(tmp_path: Path) ->
         assert q.cancel(run.id) is True
         _wait(lambda: q.get(run.id).status != RunStatus.RUNNING, timeout=3.0)
         assert q.get(run.id).status == RunStatus.CANCELLED
+    finally:
+        q.stop()
+
+
+def test_enqueue_defaults_force_false(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    storage.create_project("Law")
+    storage.create_set("law", "Week 1")
+    q = RunQueue(storage=storage, registry=StageRegistry([]))
+    run = q.enqueue(project="law", set_="week-1")
+    assert run.force is False
+    assert q.get(run.id).force is False
+
+
+def test_enqueue_records_force_true(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    storage.create_project("Law")
+    storage.create_set("law", "Week 1")
+    q = RunQueue(storage=storage, registry=StageRegistry([]))
+    run = q.enqueue(project="law", set_="week-1", force=True)
+    assert run.force is True
+    assert q.get(run.id).force is True  # survives _snapshot round-trip
+
+
+@dataclass
+class _ForceRecordingStage:
+    """Records the `ctx.force` value seen at run time so a test can assert
+    the queue threaded the per-run force flag into the StageContext."""
+
+    seen: list[bool] = field(default_factory=list)
+    name: StageName = StageName.NORMALIZE
+    depends_on: list[StageName] = field(default_factory=list)
+
+    def enabled(self, cfg: Config, opts: RunOptions) -> bool:
+        return True
+
+    def run(self, ctx: StageContext) -> StageResult:
+        self.seen.append(ctx.force)
+        return StageResult(status=StageStatus.OK)
+
+
+def test_force_threads_into_stage_context(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    storage.create_project("Law")
+    storage.create_set("law", "Week 1")
+    stage = _ForceRecordingStage()
+    q = RunQueue(storage=storage, registry=StageRegistry([stage]))
+    q.start()
+    try:
+        run = q.enqueue(project="law", set_="week-1", force=True)
+        _wait(lambda: q.get(run.id).status == RunStatus.COMPLETED)
+        assert stage.seen == [True]
+    finally:
+        q.stop()
+
+
+def test_make_llm_returns_none_when_disabled() -> None:
+    cfg = Config()
+    cfg.llm.enabled = False
+    assert _make_llm(cfg) is None
+
+
+def test_make_llm_returns_none_when_key_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    cfg = Config()
+    cfg.llm = LLMConfig(enabled=True, api_key_env="OPENAI_API_KEY", model="gpt-x")
+    # missing key: OpenAICompatibleClient.__init__ raises RuntimeError, which
+    # _make_llm swallows into None so the run degrades gracefully.
+    assert _make_llm(cfg) is None
+
+
+def test_make_llm_builds_client_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    cfg = Config()
+    cfg.llm = LLMConfig(enabled=True, api_key_env="OPENAI_API_KEY", model="gpt-x")
+    client = _make_llm(cfg)
+    assert isinstance(client, OpenAICompatibleClient)
+
+
+def test_full_registry_runs_stages_in_order(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from steno10k.api.stages import build_registry
+
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)  # LLM stages self-skip
+    storage = Storage(tmp_path)
+    storage.create_project("Law")
+    storage.create_set("law", "Week 1")  # empty set: stages no-op but run to completion
+    q = RunQueue(storage=storage, registry=build_registry())
+    run = q.enqueue(project="law", set_="week-1")
+    bus = q.get_bus(run.id)
+    started: list[str] = []
+    assert bus is not None
+    bus.subscribe(
+        lambda e: started.append(str(e.payload.get("stage"))) if e.kind == "stage_started" else None
+    )
+    q.start()
+    try:
+        _wait(lambda: q.get(run.id).status == RunStatus.COMPLETED, timeout=10.0)
+        # stages that actually started must appear in canonical order
+        canonical = [str(n) for n in build_registry().names]
+        observed = [s for s in started if s in canonical]
+        assert observed == sorted(observed, key=canonical.index)
     finally:
         q.stop()

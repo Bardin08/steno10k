@@ -19,9 +19,13 @@ def run_set(reg: StageRegistry, ctx: StageContext, opts: RunOptions) -> None:
         ctx.events.emit(Event(kind=EventKind.STAGE_STARTED, payload={"stage": stage.name}))
         result = stage.run(ctx)
         ctx.manifest.stages[stage.name] = result.status
-        kind = (
-            EventKind.STAGE_COMPLETED if result.status is StageStatus.OK else EventKind.STAGE_FAILED
-        )
+        if result.status is StageStatus.OK:
+            kind = EventKind.STAGE_COMPLETED
+        elif result.status is StageStatus.SKIPPED:
+            kind = EventKind.STAGE_SKIPPED
+        else:
+            # FAILED (and defensively PENDING, which is never a valid run() result)
+            kind = EventKind.STAGE_FAILED
         ctx.events.emit(Event(kind=kind, payload={"stage": stage.name, "stats": result.stats}))
 
     ctx.events.emit(Event(kind=EventKind.RUN_COMPLETED, payload={"set": ctx.manifest.set_slug}))

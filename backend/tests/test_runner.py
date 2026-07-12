@@ -50,3 +50,46 @@ def test_runner_records_status_and_emits(tmp_path: Path) -> None:
 
     assert manifest.stages[StageName.NORMALIZE] is StageStatus.OK
     assert {EventKind.RUN_STARTED, EventKind.STAGE_COMPLETED, EventKind.RUN_COMPLETED} <= set(kinds)
+
+
+def test_runner_emits_stage_skipped_for_skipped_status(tmp_path: Path) -> None:
+    reg = StageRegistry([_stage(StageName.NORMALIZE, [], StageStatus.SKIPPED)])
+    manifest = Manifest(project_slug="p", set_slug="s", title="S")
+    bus = EventBus()
+    kinds: list[EventKind] = []
+    bus.subscribe(lambda e: kinds.append(e.kind))
+    ctx = StageContext(
+        set_dir=tmp_path,
+        cfg=Config(),
+        force=False,
+        manifest=manifest,
+        errors=ErrorLog(tmp_path / "errors.log"),
+        events=bus,
+        llm=None,
+    )
+    run_set(reg, ctx, RunOptions())
+
+    assert manifest.stages[StageName.NORMALIZE] is StageStatus.SKIPPED
+    assert EventKind.STAGE_SKIPPED in kinds
+    assert EventKind.STAGE_FAILED not in kinds
+
+
+def test_runner_emits_stage_failed_for_failed_status(tmp_path: Path) -> None:
+    reg = StageRegistry([_stage(StageName.NORMALIZE, [], StageStatus.FAILED)])
+    manifest = Manifest(project_slug="p", set_slug="s", title="S")
+    bus = EventBus()
+    kinds: list[EventKind] = []
+    bus.subscribe(lambda e: kinds.append(e.kind))
+    ctx = StageContext(
+        set_dir=tmp_path,
+        cfg=Config(),
+        force=False,
+        manifest=manifest,
+        errors=ErrorLog(tmp_path / "errors.log"),
+        events=bus,
+        llm=None,
+    )
+    run_set(reg, ctx, RunOptions())
+
+    assert EventKind.STAGE_FAILED in kinds
+    assert EventKind.STAGE_SKIPPED not in kinds

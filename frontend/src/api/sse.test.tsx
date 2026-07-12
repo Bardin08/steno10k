@@ -35,6 +35,18 @@ test("reduces stage events into per-stage state", () => {
   expect(result.current.stages.transcribe.status).toBe("done");
 });
 
+test("stage_skipped marks the stage skipped without failing the run", () => {
+  installFakeEventSource();
+  const { result } = renderHook(() => useRunEvents("run-1"), { wrapper });
+  const es = FakeEventSource.instances[0];
+
+  act(() => es.emit("run_started", {}));
+  act(() => es.emit("stage_skipped", { stage: "clean" }));
+
+  expect(result.current.stages.clean.status).toBe("skipped");
+  expect(result.current.status).toBe("running"); // run is NOT marked failed
+});
+
 test("closes the source on a terminal event", () => {
   installFakeEventSource();
   const { result } = renderHook(() => useRunEvents("run-1"), { wrapper });

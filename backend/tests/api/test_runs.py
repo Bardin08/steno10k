@@ -66,3 +66,17 @@ def test_cancel_missing_run_404(tmp_path: Path) -> None:
         r = c.delete("/api/v1/runs/nope")
         assert r.status_code == 404
         assert r.json()["error"]["code"] == "run_not_found"
+
+
+def test_create_run_threads_force(tmp_path: Path) -> None:
+    app = create_app(data_root=tmp_path)
+    with TestClient(app) as c:
+        c.post("/api/v1/projects", json={"title": "Law"})
+        c.post("/api/v1/projects/law/sets", json={"title": "Week 1"})
+        run_id = c.post(
+            "/api/v1/runs",
+            json={"project": "law", "set": "week-1", "force": True},
+        ).json()["data"]["id"]
+
+    rq = app.state.run_queue
+    assert rq.get(run_id).force is True

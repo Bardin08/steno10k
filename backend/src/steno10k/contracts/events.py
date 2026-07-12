@@ -15,6 +15,7 @@ class EventKind(StrEnum):
     STAGE_STARTED = "stage_started"
     STAGE_PROGRESS = "stage_progress"
     STAGE_COMPLETED = "stage_completed"
+    STAGE_SKIPPED = "stage_skipped"
     STAGE_FAILED = "stage_failed"
     RUN_COMPLETED = "run_completed"
     ERROR = "error"
