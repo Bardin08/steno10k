@@ -53,6 +53,16 @@ const HELP: Record<SectionKey, string> = {
     "Turn individual pipeline stages on or off. Disabling a stage skips it for every run.",
 };
 
+// Presentational grouping of the pipeline stages into human-readable phases, in
+// run order. UI-only — the actual order/behaviour is defined by STAGE_DEPS, not
+// this. Every StageName must appear in exactly one group.
+const STAGE_GROUPS: { label: string; stages: string[] }[] = [
+  { label: "Prepare audio", stages: ["normalize", "chunk"] },
+  { label: "Transcribe", stages: ["transcribe", "clean", "merge"] },
+  { label: "Summarize", stages: ["summarize"] },
+  { label: "Deliver", stages: ["bundle", "notify"] },
+];
+
 export function ConfigScreen() {
   const { data, isLoading, isError, refetch } = useConfig();
   const system = useSystem();
@@ -304,20 +314,29 @@ export function ConfigScreen() {
           )}
 
           {section === "stages" && (
-            <div className="grid grid-cols-2 gap-3">
-              {STAGE_NAMES.map((s) => (
-                <div key={s} className="flex items-center gap-1.5">
-                  <Switch
-                    label={s}
-                    checked={enabledStages.has(s)}
-                    disabled={s in cascaded}
-                    onCheckedChange={(v) => toggleStage(s, v)}
-                  />
-                  {s in cascaded && (
-                    <span className="text-[11px] text-ink-faint">
-                      · needs {cascaded[s]}
-                    </span>
-                  )}
+            <div className="flex flex-col gap-5">
+              {STAGE_GROUPS.map((group) => (
+                <div key={group.label}>
+                  <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+                    {group.label}
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    {group.stages.map((s) => (
+                      <div key={s} className="flex items-center gap-1.5">
+                        <Switch
+                          label={s}
+                          checked={enabledStages.has(s)}
+                          disabled={s in cascaded}
+                          onCheckedChange={(v) => toggleStage(s, v)}
+                        />
+                        {s in cascaded && (
+                          <span className="text-[11px] text-ink-faint">
+                            · needs {cascaded[s]}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

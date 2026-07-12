@@ -60,6 +60,10 @@ test("renders transcription, llm, and per-stage toggles from config", async () =
   await user.click(screen.getByRole("button", { name: "Stages" }));
   expect(screen.getByRole("switch", { name: "transcribe" })).toBeChecked();
   expect(screen.getByRole("switch", { name: "notify" })).not.toBeChecked();
+  // Stages are grouped by phase, in run order.
+  expect(screen.getByText("Prepare audio")).toBeInTheDocument();
+  expect(screen.getByText("Transcribe")).toBeInTheDocument();
+  expect(screen.getByText("Deliver")).toBeInTheDocument();
 });
 
 test("vertical nav renders all four sections and a help region is present", () => {
