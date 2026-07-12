@@ -3,6 +3,7 @@ import {
   Button,
   ErrorState,
   Input,
+  Modal,
   Select,
   Skeleton,
   Switch,
@@ -17,6 +18,15 @@ import {
   providerBaseUrl,
 } from "../app/llmProviders";
 import { resolveEnabledStages } from "../app/stageDeps";
+
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 type Cfg = Record<string, Record<string, unknown>>;
 
@@ -91,6 +101,38 @@ export function ConfigScreen() {
   const audio = sectionValue("audio");
   const output = sectionValue("output");
   const models = system.data?.whisper_models ?? [String(tr.model ?? "")];
+
+  const trimmedProviderName = newProviderName.trim();
+  const trimmedProviderUrl = newProviderUrl.trim();
+  const providerNameError =
+    newProviderName !== "" && trimmedProviderName === ""
+      ? "Name is required."
+      : undefined;
+  const providerUrlError =
+    trimmedProviderUrl !== "" && !isValidHttpUrl(trimmedProviderUrl)
+      ? "Enter a valid http(s) URL."
+      : undefined;
+  const providerFormValid =
+    trimmedProviderName !== "" &&
+    trimmedProviderUrl !== "" &&
+    isValidHttpUrl(trimmedProviderUrl);
+
+  function closeProviderModal() {
+    setAddingProvider(false);
+    setNewProviderName("");
+    setNewProviderUrl("");
+  }
+
+  function submitProvider() {
+    if (!providerFormValid) return;
+    const next = addCustomProvider({
+      name: trimmedProviderName,
+      baseUrl: trimmedProviderUrl,
+    });
+    setProviders([...next]);
+    patch("llm", "base_url", trimmedProviderUrl);
+    closeProviderModal();
+  }
 
   return (
     <section className="flex max-w-[960px] flex-col gap-8">
@@ -170,57 +212,13 @@ export function ConfigScreen() {
                   }
                   options={providers.map((p) => ({ value: p.name }))}
                 />
-                {!addingProvider && (
-                  <button
-                    type="button"
-                    onClick={() => setAddingProvider(true)}
-                    className="self-start text-[13px] text-ink-faint hover:text-ink"
-                  >
-                    + Add custom endpoint…
-                  </button>
-                )}
-                {addingProvider && (
-                  <div className="flex flex-col gap-2 rounded-sm border border-hairline p-3">
-                    <Input
-                      label="Name"
-                      value={newProviderName}
-                      onChange={(e) => setNewProviderName(e.target.value)}
-                    />
-                    <Input
-                      label="URL"
-                      value={newProviderUrl}
-                      onChange={(e) => setNewProviderUrl(e.target.value)}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        disabled={
-                          !newProviderName.trim() || !newProviderUrl.trim()
-                        }
-                        onClick={() => {
-                          const name = newProviderName.trim();
-                          const baseUrl = newProviderUrl.trim();
-                          if (!name || !baseUrl) return;
-                          const next = addCustomProvider({ name, baseUrl });
-                          setProviders([...next]);
-                          patch("llm", "base_url", baseUrl);
-                          setNewProviderName("");
-                          setNewProviderUrl("");
-                          setAddingProvider(false);
-                        }}
-                      >
-                        Add
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setAddingProvider(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setAddingProvider(true)}
+                  className="self-start text-[13px] text-ink-faint hover:text-ink"
+                >
+                  + Add custom endpoint…
+                </button>
 
                 <Input
                   label="Model"
@@ -337,6 +335,41 @@ export function ConfigScreen() {
           Save config
         </Button>
       </div>
+
+      <Modal
+        open={addingProvider}
+        onOpenChange={(open) => {
+          if (!open) closeProviderModal();
+        }}
+        title="Add custom endpoint"
+      >
+        <div className="flex flex-col gap-4">
+          <Input
+            label="Name"
+            value={newProviderName}
+            error={providerNameError}
+            onChange={(e) => setNewProviderName(e.target.value)}
+          />
+          <Input
+            label="Base URL"
+            value={newProviderUrl}
+            error={providerUrlError}
+            onChange={(e) => setNewProviderUrl(e.target.value)}
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={closeProviderModal}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={!providerFormValid}
+              onClick={submitProvider}
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }

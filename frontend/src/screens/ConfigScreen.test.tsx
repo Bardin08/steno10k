@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 import { makeQueryClient } from "../app/queryClient";
@@ -322,4 +322,69 @@ test("Stages section: disabling transcribe cascade-disables dependent switches",
   expect(cleanSwitch).not.toBeChecked();
   expect(summarizeSwitch).toBeDisabled();
   expect(summarizeSwitch).not.toBeChecked();
+});
+
+test("Add custom endpoint modal validates the URL and adds a provider", async () => {
+  vi.spyOn(hooks, "usePutConfig").mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as unknown as ReturnType<typeof hooks.usePutConfig>);
+  vi.spyOn(hooks, "useSystem").mockReturnValue({
+    data: {
+      whisper_models: ["small", "large-v3"],
+      current_model: "small",
+      max_workers: 4,
+      data_root: "/data",
+      llm_key_present: true,
+    },
+    isLoading: false,
+  } as unknown as ReturnType<typeof hooks.useSystem>);
+  vi.spyOn(hooks, "useConfig").mockReturnValue({
+    data: {
+      transcription: { model: "small" },
+      llm: {
+        model: "gpt-4o",
+        base_url: "",
+        api_key_env: "OPENAI_API_KEY",
+        enabled: true,
+      },
+      audio: { chunk_seconds: 600, overlap_seconds: 15 },
+      output: { save_bundle_docx: true, summary_filename: "summary.md" },
+      stages: { enabled: {} },
+    },
+    isLoading: false,
+    isError: false,
+  } as unknown as ReturnType<typeof hooks.useConfig>);
+
+  const user = userEvent.setup();
+  renderConfig();
+  await user.click(screen.getByRole("button", { name: "LLM" }));
+  await user.click(
+    screen.getByRole("button", { name: /add custom endpoint/i }),
+  );
+
+  const dialog = screen.getByRole("dialog", { name: "Add custom endpoint" });
+  const addButton = within(dialog).getByRole("button", { name: "Add" });
+  expect(addButton).toBeDisabled();
+
+  await user.type(within(dialog).getByLabelText("Name"), "My Endpoint");
+  await user.type(within(dialog).getByLabelText("Base URL"), "test endpoint");
+  expect(within(dialog).getByText(/valid http/i)).toBeInTheDocument();
+  expect(addButton).toBeDisabled();
+
+  await user.clear(within(dialog).getByLabelText("Base URL"));
+  await user.type(
+    within(dialog).getByLabelText("Base URL"),
+    "https://my-endpoint.example.com/v1",
+  );
+  expect(within(dialog).queryByText(/valid http/i)).not.toBeInTheDocument();
+  expect(addButton).not.toBeDisabled();
+
+  await user.click(addButton);
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("combobox", { name: /provider/i }));
+  expect(
+    screen.getByRole("option", { name: "My Endpoint" }),
+  ).toBeInTheDocument();
 });
