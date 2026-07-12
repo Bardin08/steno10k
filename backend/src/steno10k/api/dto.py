@@ -96,3 +96,4 @@ class SystemInfoDTO(BaseModel):
     current_model: str
     max_workers: int
     data_root: str
+    llm_key_present: bool

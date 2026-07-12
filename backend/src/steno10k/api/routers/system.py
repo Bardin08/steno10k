@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -26,5 +27,6 @@ def get_system_info(
         current_model=cfg.transcription.model,
         max_workers=cfg.transcription.max_workers,
         data_root=str(data_root),
+        llm_key_present=bool(os.environ.get(cfg.llm.api_key_env)),
     )
     return ok(dto.model_dump())
