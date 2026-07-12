@@ -7,3 +7,19 @@
 @import "@fontsource-variable/geist-mono";
 
 @import "./tokens.css";
+
+@layer components {
+  /* Transform-free entrance for flex/grid-centered dialogs, so the box is
+     centered from the first frame (no reposition flash). Centering is handled
+     by the layout wrapper; this animates only opacity + scale. */
+  @keyframes modal-pop {
+    from {
+      opacity: 0;
+      transform: translateY(4px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
