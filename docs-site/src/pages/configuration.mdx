@@ -29,15 +29,11 @@ either knob.
 
 ## Choosing a Whisper model
 
-Only transcription is heavy — the LLM stages are remote calls. Pick the Whisper
-size that fits your machine:
-
-| Model | Disk | RAM / worker | Quality | Fits |
-| --- | --- | --- | --- | --- |
-| tiny | 75 MB | ~1 GB | rough | any laptop |
-| small | 490 MB | ~2 GB | good | 16 GB |
-| medium | 1.5 GB | ~3 GB | very good | 16 GB |
-| large-v3 | 3 GB | ~5 GB | best | workstation |
+Only transcription is heavy — the LLM stages are remote calls. The model size is
+your hardware floor, and each worker loads its own copy. The full per-model
+table (disk, RAM per worker, quality, speed) lives in one place, alongside the
+Docker memory guidance:
+**[Self-hosting → Hardware & memory](/steno10k/docs/self-hosting/#hardware--memory)**.
 
 ## Disabling stages
 

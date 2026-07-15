@@ -39,8 +39,16 @@ jobs:
           generate_release_notes: true
       - name: Prepend release notes to CHANGELOG on main
         run: |
-          PREV=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || echo "")
-          RANGE="${PREV:+$PREV..}${{ github.ref_name }}"
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          # Curated entries win: if CHANGELOG already documents this version
+          # (e.g. a hand-written `## [1.0.0]` section), leave it untouched.
+          if grep -qE "^## \[?${VERSION}\]?( |$|])" CHANGELOG.md; then
+            echo "CHANGELOG already has a section for ${VERSION}; skipping auto-prepend."
+            exit 0
+          fi
+          PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo "")
+          RANGE="${PREV:+$PREV..}${TAG}"
           NOTES=$(git log --pretty=format:'- %s' "$RANGE")
           {
             echo "# Changelog"; echo
