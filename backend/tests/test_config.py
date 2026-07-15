@@ -22,3 +22,21 @@ def test_stage_flags_default_enabled() -> None:
     cfg = Config()
     assert cfg.stages.enabled[StageName.TRANSCRIBE] is True
     assert set(cfg.stages.enabled) == set(StageName)
+
+
+def test_partial_stage_map_is_completed_to_full_set() -> None:
+    # A config that lists only some stages must still carry the full stage set,
+    # with the omitted stages defaulting to enabled. Otherwise `run_set`
+    # (missing => enabled) and `ConfigService.resolve` (missing => disabled)
+    # disagree and a run executes more stages than the API reports (issue #39).
+    cfg = Config.model_validate({"stages": {"enabled": {"normalize": True, "chunk": True}}})
+    assert set(cfg.stages.enabled) == set(StageName)
+    assert cfg.stages.enabled[StageName.TRANSCRIBE] is True
+    assert cfg.stages.enabled[StageName.NORMALIZE] is True
+
+
+def test_partial_stage_map_preserves_explicit_disables() -> None:
+    cfg = Config.model_validate({"stages": {"enabled": {"transcribe": False}}})
+    assert set(cfg.stages.enabled) == set(StageName)
+    assert cfg.stages.enabled[StageName.TRANSCRIBE] is False
+    assert cfg.stages.enabled[StageName.NORMALIZE] is True

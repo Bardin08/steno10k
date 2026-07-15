@@ -33,3 +33,13 @@ ignored, documented at the call site in `api/routers/runs.py`.
   `Config` copy in `runq._process`, leaving the frozen `run_set` untouched) and
   expose `only`/`from_stage`, most likely first through the CLI. No contract
   change is required to add them later — the fields already exist on `RunOptions`.
+
+## Note (2026-07-15, #39): stage-map semantics
+
+Because active stages are determined solely by config-level `stages.enabled`, the
+meaning of that map must be unambiguous. It is: **an omitted stage is enabled.**
+`StagesConfig` completes any partial map to the full `StageName` set on load
+(missing ⇒ `true`), so the run loop (`run_set`) and the API's cascade preview
+(`resolve_enabled`) always read identical flags. Before this, a partial map made
+the two disagree — the run executed more stages than the API reported (#39). To
+disable a stage, set it explicitly to `false`; dependents cascade off.
