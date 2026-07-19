@@ -1,0 +1,113 @@
+---
+layout: ../layouts/DocsLayout.astro
+title: API reference
+---
+
+# API reference
+
+The backend is a FastAPI service. The web UI is a client of this same API, and
+everything the UI does is scriptable. All endpoints are under `/api/v1`.
+
+Interactive, always-current docs ship with the app:
+
+- **Swagger UI** — `http://localhost:8000/docs`
+- **OpenAPI schema** — `http://localhost:8000/openapi.json` (also committed as
+  [`openapi.json`](https://github.com/Bardin08/steno10k/blob/main/openapi.json)).
+
+## Response envelope
+
+Every JSON response is wrapped:
+
+```json
+{ "data": <payload> | null, "error": null | { "code": "…", "message": "…", "details": {} } }
+```
+
+On success `error` is `null`; on failure `data` is `null` and `error` carries a
+machine-readable `code`. Common codes: `validation_error` (422),
+`run_not_found` (404), `internal_error` (500).
+
+## Endpoints
+
+### Projects & sets
+
+| Method | Path | Body → returns |
+| --- | --- | --- |
+| `POST` | `/api/v1/projects` | `{title, icon?}` → `ProjectDTO` |
+| `GET` | `/api/v1/projects` | → `ProjectDTO[]` |
+| `GET` | `/api/v1/projects/{project}` | → `ProjectDTO` |
+| `DELETE` | `/api/v1/projects/{project}` | → `null` |
+| `POST` | `/api/v1/projects/{project}/sets` | `{title}` → `SetDTO` |
+| `GET` | `/api/v1/projects/{project}/sets` | → `SetDTO[]` |
+| `GET` | `/api/v1/projects/{project}/sets/{set}` | → `SetDTO` |
+| `DELETE` | `/api/v1/projects/{project}/sets/{set}` | → `null` |
+
+### Recordings & artifacts
+
+| Method | Path | Body → returns |
+| --- | --- | --- |
+| `POST` | `…/sets/{set}/recordings` | multipart `files[]` → `RecordingDTO[]` (max 1 GB/file) |
+| `GET` | `…/sets/{set}/recordings` | → `RecordingDTO[]` |
+| `DELETE` | `…/sets/{set}/recordings/{recording}` | → `null` |
+| `GET` | `…/sets/{set}/artifacts` | → `ArtifactDTO[]` (pipeline outputs; bookkeeping files excluded) |
+| `GET` | `…/artifacts/{path}/preview` | inline preview of one artifact |
+| `GET` | `…/artifacts/{path}/download` | file download |
+
+### Runs
+
+| Method | Path | Body → returns |
+| --- | --- | --- |
+| `POST` | `/api/v1/runs` | `{project, set, force?, stage_overrides?}` → `RunDTO` |
+| `GET` | `/api/v1/runs` | → `RunDTO[]` |
+| `GET` | `/api/v1/runs/{run_id}` | → `RunDTO` |
+| `DELETE` | `/api/v1/runs/{run_id}` | → `{cancelled: bool}` |
+| `GET` | `/api/v1/runs/{run_id}/events` | **SSE** stream (see below) |
+
+Runs are processed one at a time on a single worker. A `RunDTO` has
+`status ∈ {queued, running, completed, failed, cancelled}`.
+
+> `stage_overrides` is accepted for forward-compatibility but **not applied** in
+> v1 — a run's active stages come from `config.stages.enabled` plus `force`. See
+> [ADR 0002](https://github.com/Bardin08/steno10k/blob/main/docs/adr/0002-deferred-run-options.md).
+
+### Config, prompts & system
+
+| Method | Path | Body → returns |
+| --- | --- | --- |
+| `GET` | `/api/v1/config` | → `Config` |
+| `PUT` | `/api/v1/config` | `Config` → `{config, cascaded_off[]}` |
+| `GET` | `/api/v1/config/defaults` | → `Config` (built-in defaults) |
+| `GET` | `/api/v1/prompts` | → `PromptDTO[]` |
+| `PUT` | `/api/v1/prompts/{name}` | update one prompt template |
+| `POST` | `/api/v1/prompts/{name}/reset` | reset a prompt to its built-in |
+| `GET` | `/api/v1/system` | → `SystemInfoDTO` |
+| `GET` | `/api/v1/health` | → `{status: "ok"}` |
+
+`PUT /config` echoes `cascaded_off` — the stages forced off because a dependency
+was disabled. `GET /system` returns `whisper_models`, `current_model`,
+`max_workers`, `data_root`, and `llm_key_present` (a boolean — the key value is
+never exposed).
+
+## Run event stream (SSE)
+
+`GET /api/v1/runs/{run_id}/events` is a `text/event-stream`. It replays events
+already emitted (so a client that connects late doesn't miss anything) and then
+streams live until the run finishes. Event kinds:
+
+| Kind | Meaning |
+| --- | --- |
+| `run_started` | the run began |
+| `stage_started` | a stage began |
+| `stage_progress` | incremental progress within a stage |
+| `stage_completed` | a stage finished successfully |
+| `stage_skipped` | a stage was skipped (disabled, or nothing to do) |
+| `stage_failed` | a stage failed |
+| `run_completed` | the run finished (terminal) |
+| `error` | an error was surfaced |
+
+## Response shapes
+
+- **`ProjectDTO`** — `{id, slug, title, icon?, sets: SetDTO[]}`
+- **`SetDTO`** — `{id, slug, title, project_slug, recordings: RecordingDTO[], stages: {stage: status}}`
+- **`RecordingDTO`** — `{source_name, normalized_name, duration_seconds?, chunks: string[]}`
+- **`RunDTO`** — `{id, project, set_, status, position, stats}`
+- **`SystemInfoDTO`** — `{whisper_models, current_model, max_workers, data_root, llm_key_present}`
