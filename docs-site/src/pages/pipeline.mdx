@@ -1,0 +1,79 @@
+---
+layout: ../layouts/DocsLayout.astro
+title: Pipeline & artifacts
+---
+
+# Pipeline & artifacts
+
+A **project** groups **sets**; a **set** holds one or more **recordings** and
+produces one summary. Each set flows through eight stages. Every stage caches its
+output to disk, so re-runs and partial runs are cheap.
+
+## The eight stages
+
+| # | Stage | Kind | Input | Output |
+| --- | --- | --- | --- | --- |
+| 1 | `normalize` | local | uploaded recordings | records each recording + its duration in the manifest (filenames are already made safe at upload — no copy). |
+| 2 | `chunk` | local | source audio | overlapping segments in `chunks/<recording>/chunk_NNN.<fmt>`. |
+| 3 | `transcribe` | local (CPU) | chunks | one raw transcript per chunk: `transcripts_raw/<recording>/<chunk>.txt`. |
+| 4 | `clean` | **llm** | raw transcripts | punctuation/recognition fixes: `transcripts_clean/<recording>/<chunk>.md`. |
+| 5 | `merge` | local | raw + clean transcripts | `merged/raw_transcript.md` and `merged/clean_transcript.md`. |
+| 6 | `summarize` | **llm** | merged clean transcript | `summary.md` (name set by `output.summary_filename`). |
+| 7 | `bundle` | local | clean transcript + summary | `bundle/transcript.docx` and `bundle/summary.docx`. |
+| 8 | `notify` | local | completion events | `notify/sent.json`; pushes to Telegram if enabled. |
+
+Only `transcribe` is resource-heavy; the two **llm** stages are remote API calls
+and everything else is light local I/O.
+
+## On-disk layout
+
+The file system is the store. One mounted volume holds everything:
+
+```
+<data-root>/
+  config.yaml                  # the single global config
+  .cache/huggingface/          # downloaded Whisper model (first run)
+  <project-slug>/
+    project.json               # project metadata
+    <set-slug>/
+      manifest.json            # per-set job-status record (source of truth)
+      errors.log
+      <recording>.<ext>        # source audio (already safely named)
+      chunks/<recording>/      # chunk
+      transcripts_raw/<recording>/    # transcribe (.txt per chunk)
+      transcripts_clean/<recording>/  # clean (.md per chunk)
+      merged/{raw,clean}_transcript.md  # merge
+      summary.md               # summarize (filename configurable)
+      bundle/*.docx            # bundle
+      notify/sent.json         # notify
+```
+
+A run with no project specified uses an implicit `default` project. Slugs are
+unicode-safe, lowercased derivations of the display title, collision-resolved
+with a `_2`, `_3`, … suffix; the original title is preserved in the manifest.
+
+Point the CLI and the container at the same volume
+(`STENO10K_DATA_ROOT` / `--data-root`) and they share one store.
+
+## Dependencies & caching
+
+**The manifest is the source of truth: output on disk ⇔ stage done.** Each stage
+checks its own outputs per file and skips the ones that already exist, so a
+re-run only does the work that's missing. `--force` (CLI) or the **Force** toggle
+in the UI ignores existing outputs and recomputes everything.
+
+Stages run in order and form a dependency chain:
+
+```
+normalize → chunk → transcribe → clean → merge → summarize → bundle → notify
+```
+
+Disabling a stage in [`stages.enabled`](/steno10k/docs/configuration-reference/#stages)
+**cascades**: every stage that transitively depends on its output is switched off
+too. For example, disabling `transcribe` also disables `clean`, `merge`,
+`summarize`, and `bundle`. An **omitted** stage counts as enabled — set a stage to
+`false` explicitly to turn it off.
+
+To stay fully local, disable the two LLM stages (`clean`, `summarize`) or use the
+CLI's `--skip-llm`. See the [CLI](/steno10k/docs/cli/) for per-run scoping
+(`--only`, `--from`).

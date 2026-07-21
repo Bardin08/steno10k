@@ -15,9 +15,9 @@ memos — into clean Markdown transcripts and summaries. Transcription runs
 **OpenAI-compatible** LLM endpoint. Nothing leaves your machine unless you send
 it. Runs as **one container + one volume**.
 
-> **Status:** early development. This milestone (M0) stands up the repo, CI/CD,
-> and tooling; the pipeline and UI land in subsequent milestones. See
-> `docs/specs/` for the design and `docs/plans/` for the build plans.
+> **Status:** v1. The full pipeline (all eight stages), web UI, CLI, and
+> single-container packaging have shipped. See `docs/specs/` for the design and
+> `docs/plans/` for the build plans.
 
 ## Pipeline
 
@@ -39,16 +39,18 @@ enabled/disabled from config or the UI (dependencies cascade).
 ## Quickstart
 
 ```bash
-cp config.example.yaml config.yaml
 docker compose up
 ```
 
-Then open the UI at `http://localhost:8000`.
+Then open the UI at `http://localhost:8000`. On first boot a default
+`config.yaml` is seeded into the data volume — edit it there (or via the UI).
+To enable the LLM clean/summarize stages, put `OPENAI_API_KEY=…` in a `.env`
+file (loaded by compose). See the [Self-hosting docs](https://bardin08.github.io/steno10k/docs/self-hosting/).
 
 ### CLI
 
 A terminal driver, `steno10k`, manages projects/sets/recordings and runs the
-pipeline over the same store — see the [CLI docs](docs-site/src/pages/cli.mdx).
+pipeline over the same store — see the [CLI docs](https://bardin08.github.io/steno10k/docs/cli/).
 
 ```bash
 steno10k run my-project week-1 --from transcribe --skip-llm
@@ -61,16 +63,21 @@ that fits your machine (total RAM ≈ per-worker footprint × `max_workers`):
 
 | Model     | Disk   | RAM / worker | Quality   | Fits          |
 | --------- | ------ | ------------ | --------- | ------------- |
-| tiny      | 75 MB  | ~1 GB        | rough     | any laptop    |
-| small     | 490 MB | ~2 GB        | good      | 16 GB         |
-| medium    | 1.5 GB | ~3 GB        | very good | 16 GB         |
-| large-v3  | 3 GB   | ~5 GB        | best      | workstation   |
+| tiny      | 75 MB  | ~0.5–1 GB    | rough     | any laptop    |
+| small     | 490 MB | ~1.5–2 GB    | good      | 16 GB         |
+| medium    | 1.5 GB | ~2.5–4 GB    | very good | 16 GB         |
+| large-v3  | 3 GB   | ~4–6 GB      | best      | workstation   |
+
+> Full per-model table (incl. `base` + speed) and Docker memory guidance:
+> [Self-hosting docs](https://bardin08.github.io/steno10k/docs/self-hosting/#hardware--memory).
 
 > Note: faster-whisper (CTranslate2) is **CPU-only on Apple Silicon** (no
 > Metal/MPS; GPU acceleration is CUDA-only).
 
 ## Docs
 
+- User docs (getting started, configuration, CLI, self-hosting) —
+  [bardin08.github.io/steno10k/docs](https://bardin08.github.io/steno10k/docs/)
 - Design specs — `docs/specs/`
 - Build plans — `docs/plans/`
 - Standards & agent rules — `docs/standards/`, `AGENTS.md`

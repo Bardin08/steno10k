@@ -1,0 +1,117 @@
+---
+layout: ../layouts/DocsLayout.astro
+title: Configuration reference
+---
+
+# Configuration reference
+
+Every setting lives in a single `config.yaml` at the root of your data volume
+(`<data-root>/config.yaml`). It is seeded from `config.example.yaml` on first
+boot and can be edited by hand or through the UI's config screen. Secrets are
+**never** stored here — they are read from environment variables.
+
+For the conceptual overview (what the stages are, how to disable them), see
+[Configuration](/steno10k/docs/configuration/). This page is the exhaustive
+key-by-key reference.
+
+## `audio`
+
+Chunking controls for the `chunk` stage.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `chunk_seconds` | int | `600` | Target length of each chunk (10 min). |
+| `overlap_seconds` | int | `15` | Overlap between adjacent chunks, so words at a boundary aren't lost. |
+| `min_chunk_seconds` | int | `20` | A trailing remainder shorter than this is folded into the previous chunk. |
+| `output_format` | str | `m4a` | Container/codec for extracted chunks (any ffmpeg-supported format). |
+
+## `transcription`
+
+The `transcribe` stage — the only resource-heavy part of the pipeline.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `model` | str | `small` | `tiny` \| `base` \| `small` \| `medium` \| `large-v3`. Sizing guide: [Self-hosting](/steno10k/docs/self-hosting/#hardware--memory). |
+| `device` | str | `cpu` | CPU-only on Apple Silicon (CTranslate2 has no Metal/MPS). |
+| `compute_type` | str | `int8` | Quantization used by faster-whisper. |
+| `language` | str | `en` | Source language hint. |
+| `max_workers` | int | `2` | Parallel transcription workers. **Each loads its own copy of the model**, so total RAM ≈ per-worker footprint × `max_workers`. The shipped `config.yaml` sets `2`; if the key is omitted entirely the built-in fallback is `4`, so set it explicitly. |
+| `cpu_threads_per_worker` | int | `3` | ffmpeg/CTranslate2 threads per worker. |
+
+> **Decode knobs** (`beam_size`, `vad_filter`, `min_silence_duration_ms`) are not
+> user-configurable in v1 — they are supplied as fixed defaults by the transcribe
+> stage. See [ADR 0001](https://github.com/Bardin08/steno10k/blob/main/docs/adr/0001-defer-llm-and-whisper-config-knobs.md).
+
+## `llm`
+
+Used by the `clean` and `summarize` stages. Any **OpenAI-compatible** endpoint.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `enabled` | bool | `true` | Master switch for LLM stages. When off (or no key present), `clean`/`summarize` are skipped. |
+| `api_key_env` | str | `OPENAI_API_KEY` | **Name of the env var** holding the key — not the key itself. |
+| `base_url` | str | `""` | Endpoint URL; empty means OpenAI's default. Point this at a local or self-hosted model. |
+| `model` | str | `""` | Model name to request. |
+| `temperature` | float | `0.2` | Sampling temperature. |
+| `max_tokens` | int | `4000` | Max completion tokens per call. |
+| `concurrency` | int | `2` | Parallel LLM calls. |
+
+> **Retry/timeout policy** (timeout, max retries, backoff) is fixed in v1
+> (120 s timeout, 3 retries, exponential backoff). Not a config knob — see
+> [ADR 0001](https://github.com/Bardin08/steno10k/blob/main/docs/adr/0001-defer-llm-and-whisper-config-knobs.md).
+
+## `output`
+
+What the assembly stages write.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `summary_filename` | str | `summary.md` | Name of the summary written by `summarize`. |
+| `save_merged_raw_transcript` | bool | `true` | Write `merged/raw_transcript.md`. |
+| `save_merged_clean_transcript` | bool | `true` | Write `merged/clean_transcript.md` (input to `summarize` and `bundle`). |
+| `save_bundle_docx` | bool | `true` | Render `.docx` files in the `bundle` stage. |
+
+## `stages`
+
+`stages.enabled` maps each stage to a boolean.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `enabled.<stage>` | bool | `true` | One entry per stage: `normalize`, `chunk`, `transcribe`, `clean`, `merge`, `summarize`, `bundle`, `notify`. |
+
+**An omitted stage is treated as enabled** — the map is completed to the full set
+on load. To turn a stage off, set it explicitly to `false`; every stage that
+depends on its output cascades off automatically. See
+[Pipeline & artifacts](/steno10k/docs/pipeline/#dependencies--caching).
+
+## `prompts`
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `language` | str | `en` | Language the prompts are written for. |
+| `target_output_language` | str | `en` | Language of the cleaned transcript and summary. |
+| `override_dir` | str \| null | `null` | Directory of custom prompt templates that override the built-ins. |
+
+## `telegram`
+
+Backs the optional `notify` stage.
+
+| Key | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `enabled` | bool | `false` | Turn on Telegram delivery. |
+| `bot_token_env` | str | `TELEGRAM_BOT_TOKEN` | **Name of the env var** holding the bot token. |
+| `chat_id` | int \| null | `null` | Destination chat. |
+
+## Secrets & environment
+
+Keys are supplied via the environment (e.g. an `.env` file loaded by
+`docker compose`), and `config.yaml` only names the variable:
+
+```bash
+# .env
+OPENAI_API_KEY=sk-...
+TELEGRAM_BOT_TOKEN=123456:ABC...
+```
+
+The API never returns secret values; `GET /api/v1/system` reports only
+`llm_key_present: true|false`.

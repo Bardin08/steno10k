@@ -1,0 +1,89 @@
+---
+layout: ../layouts/DocsLayout.astro
+title: Troubleshooting & FAQ
+---
+
+# Troubleshooting & FAQ
+
+## The first run seems stuck
+
+On the **first transcription**, faster-whisper downloads the Whisper model into
+the volume (`/data/.cache/huggingface`). This can take a few minutes and streams
+progress to the container logs — **it is not stuck**. Subsequent runs reuse the
+cached model. Watch the logs:
+
+```bash
+docker compose logs -f
+```
+
+## A run stalls or the container is killed (OOM)
+
+Each transcription worker loads its **own** copy of the model, so peak RAM ≈
+per-worker footprint × `transcription.max_workers`. If that exceeds what Docker
+has, the container is OOM-killed — which can look like a silent stall.
+
+steno10k emits a non-blocking memory warning (in the logs and on the run) when
+your config likely exceeds available memory. Fixes:
+
+- Lower `transcription.max_workers` or choose a smaller `model`.
+- Raise Docker Desktop's memory ceiling.
+
+See [Self-hosting → Hardware & memory](/steno10k/docs/self-hosting/#hardware--memory)
+for the full model table and Docker memory settings.
+
+## Transcription is slow / no GPU
+
+CTranslate2 (the Whisper backend) is **CPU-only on Apple Silicon** — there is no
+Metal/MPS acceleration (GPU is CUDA-only). On Macs, transcription runs on the CPU;
+pick a smaller model if throughput matters.
+
+## The clean/summary steps didn't run
+
+The `clean` and `summarize` stages need an LLM. They're skipped when:
+
+- `llm.enabled` is `false`, **or**
+- the environment variable named by `llm.api_key_env` (default `OPENAI_API_KEY`)
+  isn't set. Check `GET /api/v1/system` → `llm_key_present`.
+
+Set the key in your `.env` (loaded by `docker compose`), or run transcript-only
+on purpose with the CLI's `--skip-llm`.
+
+## I want to stay fully local (nothing leaves my machine)
+
+Transcription is already local. To skip the remote LLM calls entirely, disable
+`clean` and `summarize` in [`stages.enabled`](/steno10k/docs/configuration-reference/#stages),
+or point `llm.base_url` at a local OpenAI-compatible endpoint.
+
+## A run finished but produced nothing
+
+A recording that yields **0 chunks** (empty or unreadable audio) makes the later
+stages no-op — the run completes "successfully" with no transcript. Confirm the
+source file plays, and check `errors.log` in the set directory.
+
+## Re-running repeats work I've already done
+
+By default each stage skips outputs that already exist, so re-runs are cheap. If
+you *want* to recompute, use `--force` (CLI) or the **Force** toggle in the UI.
+To scope a re-run to part of the pipeline, use `--only STAGE` or `--from STAGE` —
+see the [CLI](/steno10k/docs/cli/).
+
+## Where are my transcripts and summaries?
+
+Under the set directory in your data volume: `merged/clean_transcript.md`,
+`summary.md`, and `bundle/*.docx`. The full layout is in
+[Pipeline & artifacts](/steno10k/docs/pipeline/#on-disk-layout). You can also
+browse and download them from the set's artifacts view in the UI, or via
+`GET …/artifacts`.
+
+## Enabling Telegram notifications
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) and get its token.
+2. Put the token in the env var named by `telegram.bot_token_env`
+   (default `TELEGRAM_BOT_TOKEN`).
+3. In `config.yaml`, set `telegram.enabled: true` and `telegram.chat_id` to your
+   destination chat, and keep the `notify` stage enabled.
+
+## Changing config doesn't take effect
+
+Config is read at the start of each run. Save your `config.yaml` (or apply via the
+UI), then start a new run — an in-flight run keeps the config it started with.
